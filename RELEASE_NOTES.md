@@ -2,6 +2,16 @@
 
 ---
 
+## v0.6.0 — 2026-03-17
+
+### Application Folder as Source of Truth (`tracker.py repair`)
+
+- **Updated: `tracker.py`** — `cmd_log` now auto-resolves `Tailored Resume File` from the `applications/` folder when `--resume-file` is not provided. Uses token-score matching against folder names (company slug + title slug, score >= 2 required to prevent false positives).
+
+- **New: `tracker.py repair`** — Backfills missing `Tailored Resume File` paths across all existing tracker rows. Safe to re-run; skips rows that already have a path. Ran on existing data: 1 row fixed (FDE @ Anthropic).
+
+---
+
 ## v0.5.0 — 2026-03-17
 
 ### Tracker Dedup, Salary Normalization, and Follow-Up Automation

@@ -12,11 +12,10 @@
 - [x] **F. ATS-Aware Q&A Auto-Injection** — Before filling any form, semantically match every visible question against `application_qa.csv` and pre-populate answers. Only escalate unknowns to Yury.
 - [x] **G. Auto-Log on Submit Confirmation** — Detect confirmation page (URL `/confirmation` or title "Thank you") and auto-run `tracker.py log` with resume path, URL, and timestamp. Eliminates manual step.
 - [x] **H. Tracker Dedup + Validation** — Prevent duplicate rows by (Company + Job Title). Validate salary format. Auto-set Follow Up Date to +7 days from application date.
-- [ ] **I. Application Folder as Source of Truth** — Folder name is canonical key; tracker always links to it. Fix missing resume file references.
+- [x] **I. Application Folder as Source of Truth** — Folder name is canonical key; tracker always links to it. Fix missing resume file references.
 
 ## P3 — Strategic
 
 - [ ] **J. LinkedIn Job Scraping Pipeline** — Automate job discovery: run search queries, extract job cards, score against profile with Claude, output ranked shortlist.
 - [ ] **K. Response Tracking + Feedback Loop** — Add `Date Response Received` + `Response Type` to tracker. When leoprime.dev receives a reply from an applied company, auto-update the row. Correlate response rates with match score, resume angle, ATS, salary range over time.
 - [ ] **L. Full Cover Letter Generator** — For non-Easy-Apply jobs with a cover letter field, generate a full 3-paragraph personalized letter (separate prompt) rather than just a snippet.
-- [ ] **M. Follow-Up Email Automation** — 7 days post-application with no response: draft a follow-up email to the recruiter for Yury's review before sending.

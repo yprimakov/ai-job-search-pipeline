@@ -44,6 +44,7 @@ JOBS_DIR = Path(__file__).parent.parent / "jobs"
 JOBS_DIR.mkdir(parents=True, exist_ok=True)
 TRACKER_FILE = JOBS_DIR / "application_tracker.csv"
 QA_FILE = JOBS_DIR / "application_qa.csv"
+APPS_DIR = Path(__file__).parent.parent / "applications"
 
 TRACKER_HEADERS = [
     "Date Applied", "Company", "Job Title", "LinkedIn URL", "Work Mode",
@@ -54,6 +55,34 @@ QA_HEADERS = [
     "Question ID", "Question", "Context (where it appeared)",
     "Answer", "Date Answered", "Notes",
 ]
+
+
+# ── Application folder resolver ────────────────────────────────────────────────
+def find_resume_for_application(company: str, title: str) -> str:
+    """
+    Search applications/ for a folder matching company+title and return the
+    relative path to resume.pdf, or empty string if not found.
+    Folder naming convention: YYYYMMDD_Company_Title (underscores, truncated).
+    """
+    if not APPS_DIR.exists():
+        return ""
+    company_slug = re.sub(r"[^a-z0-9]+", "_", company.lower()).strip("_")
+    title_slug   = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")
+    # Score each folder by how many slug tokens appear in its name
+    best_path, best_score = "", 0
+    for folder in sorted(APPS_DIR.iterdir(), reverse=True):
+        if not folder.is_dir():
+            continue
+        name = folder.name.lower()
+        company_hits = sum(1 for tok in company_slug.split("_") if tok and tok in name)
+        title_hits   = sum(1 for tok in title_slug.split("_")   if tok and tok in name)
+        score = company_hits + title_hits
+        if score > best_score:
+            pdf = folder / "resume.pdf"
+            if pdf.exists():
+                best_score = score
+                best_path = str(pdf.relative_to(APPS_DIR.parent))
+    return best_path if best_score >= 2 else ""
 
 
 # ── Salary normalizer ──────────────────────────────────────────────────────────
@@ -172,11 +201,12 @@ def cmd_log(args):
         "Easy Apply": "Yes" if args.easy_apply else "No",
         "Application Status": "Applied",
         "Notes": args.notes or "",
-        "Tailored Resume File": args.resume_file or "",
+        "Tailored Resume File": args.resume_file or find_resume_for_application(args.company, args.title),
         "Follow Up Date": follow_up,
     }
     append_csv(TRACKER_FILE, TRACKER_HEADERS, row)
-    print(f"[ok] Logged application: {args.title} @ {args.company} (follow-up: {follow_up})")
+    resume_note = f" | resume: {row['Tailored Resume File']}" if row["Tailored Resume File"] else ""
+    print(f"[ok] Logged application: {args.title} @ {args.company} (follow-up: {follow_up}{resume_note})")
 
 
 def cmd_question(args):
@@ -278,6 +308,25 @@ def cmd_update_status(args):
     print(f"[ok] Status updated to '{args.status}' for {args.title} @ {args.company}")
 
 
+def cmd_repair(args):
+    """Backfill missing Tailored Resume File paths from the applications/ folder."""
+    rows = read_csv(TRACKER_FILE, TRACKER_HEADERS)
+    fixed, missing = 0, 0
+    for row in rows:
+        if row.get("Tailored Resume File", "").strip():
+            continue
+        path = find_resume_for_application(row.get("Company", ""), row.get("Job Title", ""))
+        if path:
+            row["Tailored Resume File"] = path
+            fixed += 1
+            print(f"  [fixed] {row['Job Title']} @ {row['Company']} -> {path}")
+        else:
+            missing += 1
+            print(f"  [miss]  {row['Job Title']} @ {row['Company']} — no folder found")
+    write_csv(TRACKER_FILE, TRACKER_HEADERS, rows)
+    print(f"\n[ok] Repaired {fixed} row(s). {missing} still missing (no applications/ folder match).")
+
+
 # ── CLI ────────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(description="Job application tracker & Q&A knowledge base")
@@ -324,6 +373,9 @@ def main():
                       help="e.g. Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn")
     p_us.add_argument("--notes")
 
+    # repair
+    sub.add_parser("repair", help="Backfill missing resume file paths from applications/ folder")
+
     args = parser.parse_args()
     {
         "log": cmd_log,
@@ -333,6 +385,7 @@ def main():
         "list": cmd_list,
         "lookup": cmd_lookup,
         "update-status": cmd_update_status,
+        "repair": cmd_repair,
     }[args.command](args)
 
 
