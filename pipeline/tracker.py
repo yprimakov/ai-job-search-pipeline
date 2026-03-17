@@ -32,7 +32,7 @@ import csv
 import os
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import anthropic
@@ -54,6 +54,30 @@ QA_HEADERS = [
     "Question ID", "Question", "Context (where it appeared)",
     "Answer", "Date Answered", "Notes",
 ]
+
+
+# ── Salary normalizer ──────────────────────────────────────────────────────────
+def normalize_salary(raw: str) -> str:
+    """Normalize salary to '$NNNk-$MMMk' or '$NNNk' format. Returns raw if unparseable."""
+    if not raw:
+        return raw
+    # Extract all dollar amounts (handles $180K, $180,000, 180000, etc.)
+    amounts = re.findall(r"\$?\s*([\d,]+)\s*[kK]?", raw.replace(",", ""))
+    values = []
+    for tok, m in zip(re.findall(r"\$?\s*[\d,]+\s*[kK]?", raw), amounts):
+        n = int(m.replace(",", ""))
+        if "k" in tok.lower() or n < 10000:
+            values.append(n * 1000 if n < 1000 else n)
+        else:
+            values.append(n)
+    if not values:
+        return raw
+    values = sorted(set(values))
+    def fmt(v):
+        return f"${v // 1000}k"
+    if len(values) == 1:
+        return fmt(values[0])
+    return f"{fmt(values[0])}-{fmt(values[-1])}"
 
 
 # ── CSV helpers ────────────────────────────────────────────────────────────────
@@ -129,21 +153,30 @@ Return only the matching Question IDs (e.g., "Q001, Q003") or "none". No explana
 
 # ── Commands ───────────────────────────────────────────────────────────────────
 def cmd_log(args):
+    rows = read_csv(TRACKER_FILE, TRACKER_HEADERS)
+    # Dedup check
+    for existing in rows:
+        if (existing.get("Company", "").lower() == args.company.lower() and
+                existing.get("Job Title", "").lower() == args.title.lower()):
+            print(f"[skip] Already logged: {args.title} @ {args.company}")
+            return
+
+    follow_up = args.follow_up or (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
     row = {
         "Date Applied": datetime.now().strftime("%Y-%m-%d"),
         "Company": args.company,
         "Job Title": args.title,
         "LinkedIn URL": args.url or "",
         "Work Mode": args.mode or "",
-        "Salary Range": args.salary or "",
+        "Salary Range": normalize_salary(args.salary or ""),
         "Easy Apply": "Yes" if args.easy_apply else "No",
         "Application Status": "Applied",
         "Notes": args.notes or "",
         "Tailored Resume File": args.resume_file or "",
-        "Follow Up Date": args.follow_up or "",
+        "Follow Up Date": follow_up,
     }
     append_csv(TRACKER_FILE, TRACKER_HEADERS, row)
-    print(f"[ok] Logged application: {args.title} @ {args.company}")
+    print(f"[ok] Logged application: {args.title} @ {args.company} (follow-up: {follow_up})")
 
 
 def cmd_question(args):

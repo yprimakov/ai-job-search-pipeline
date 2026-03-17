@@ -2,6 +2,23 @@
 
 ---
 
+## v0.5.0 — 2026-03-17
+
+### Tracker Dedup, Salary Normalization, and Follow-Up Automation
+
+- **Updated: `tracker.py`** — `cmd_log` now checks for duplicate (Company + Job Title) before writing; skips silently if already logged. Salary is normalized to `$NNNk-$MMMk` format via new `normalize_salary()`. `Follow Up Date` auto-sets to today + 7 days when not provided.
+
+- **New: `pipeline/followup.py`** — Daily follow-up draft creator.
+  - Reads `application_tracker.csv`, finds rows where `Application Status == "Applied"` and `Follow Up Date <= today`.
+  - Creates Gmail drafts for each due application (addressed to self for review before sending).
+  - `--dry-run` mode lists due applications without creating drafts.
+  - `--install` registers a Windows Task Scheduler job (`JobSeekerFollowUp`) to run daily at 09:00.
+  - `--setup` runs one-time Gmail OAuth flow (`gmail.compose` scope).
+
+- **Updated: `pipeline/requirements.txt`** — Added `google-auth`, `google-auth-oauthlib`, `google-auth-httplib2`, `google-api-python-client` for Gmail API access.
+
+---
+
 ## v0.4.0 — 2026-03-17
 
 ### ATS Automation — Combobox, Q&A, and Auto-Log (`pipeline/ats/`)
