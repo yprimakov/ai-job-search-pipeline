@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" id="root">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>yuryprimakov.com — Component Library</title>
+<style>
+/* ============================================================
+   DESIGN TOKENS — Playwright-verified (March 2026)
+   Stack: Next.js App Router · Tailwind CSS v3.4.13 · shadcn/ui
+   ============================================================ */
+:root {
+  /* Core background / surface */
+  --bg:             #ffffff;
+  --bg-dark:        rgb(2, 8, 23);       /* slate-950 — page bg in dark mode */
+
+  /* Text */
+  --fg:             #020817;
+  --fg-dark:        #f8fafc;
+  --muted:          #64748b;
+  --muted-dark:     #94a3b8;
+
+  /* Brand accent */
+  --accent:         #3b82f6;             /* blue-500 */
+
+  /* Glass card — OUTER wrapper (transparent bg, backdrop-blur, 1px padding) */
+  --glass-outer-bg-light:   rgba(241, 245, 249, 0.4);   /* slate-100 / 40% */
+  --glass-outer-bg-dark:    rgba(0, 0, 0, 0);            /* fully transparent — orb shows through */
+  --glass-outer-shadow:     rgba(107, 33, 168, 0.3) 0px 25px 50px -12px;   /* purple diffuse */
+  --glass-outer-shadow-sm:  rgba(255, 255, 255, 0.1) 0px 25px 50px -12px;
+
+  /* Glass card — INNER card panel */
+  --glass-inner-bg-light:   rgba(241, 245, 249, 0.6);   /* slate-100 / 60% */
+  --glass-inner-bg-dark:    rgba(2, 6, 23, 0.7);         /* slate-950 / 70% — Playwright verified */
+  --glass-inner-inset-light: inset 0px 1px 0px rgba(255, 255, 255, 0.8);
+  --glass-inner-inset-dark:  inset 0px 1px 0px rgba(255, 255, 255, 0.1);
+
+  /* Buttons */
+  --btn-primary:    linear-gradient(to right, #60a5fa, #3b82f6, #2563eb); /* blue-400→500→600 */
+  --btn-secondary-border-light: #e2e8f0;
+  --btn-secondary-border-dark:  #1e293b;
+
+  /* Orb gradients — light mode */
+  --orb1-light: linear-gradient(to right bottom, rgb(147, 197, 253), rgba(186, 230, 253, 0.6));
+  --orb2-light: linear-gradient(to right bottom, rgba(254, 214, 169, 0.8), rgb(252, 211, 77));
+  --orb3-light: linear-gradient(to right bottom, rgb(216, 180, 254), rgb(147, 197, 253));
+
+  /* Orb gradients — dark mode (Playwright-verified class names) */
+  --orb1-dark: linear-gradient(to right bottom, rgb(168, 85, 247), rgba(15, 23, 42, 0.4));
+  --orb2-dark: linear-gradient(to right bottom, rgba(245, 158, 11, 0.8), rgb(217, 119, 6));
+  --orb3-dark: linear-gradient(to right bottom, rgb(109, 40, 217), rgb(99, 102, 241));
+
+  /* Motion */
+  --ease-out:    cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast:    0.15s;
+  --dur-std:     0.2s;
+  --dur-slow:    0.3s;
+  --dur-glow:    0.5s;
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background: #ffffff;
+  color: var(--fg);
+  transition: background 0.3s, color 0.3s;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.dark body {
+  background: var(--bg-dark);
+  color: var(--fg-dark);
+}
+
+/* ============================================================
+   AMBIENT BACKGROUND ORBS
+   (Fixed layer z-index:-10. Three blurred circles that float.)
+   Verified class structure: jsx-707c72aed7b87c07 fixed inset-0 w-full h-full overflow-hidden -z-10
+   ============================================================ */
+.bg-orbs {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -10;
+  pointer-events: none;
+}
+
+.bg-orbs .orb {
+  position: absolute;
+  border-radius: 9999px;
+}
+
+/* Orb 1 — top-left — blue/purple (light: blue-300, dark: purple-500) */
+.bg-orbs .orb-1 {
+  width: 40vw; height: 40vw;
+  top: -10%; left: -10%;
+  background: var(--orb1-light);
+  filter: blur(80px);
+  opacity: 0.7;
+  animation: float-1 24s ease-in-out infinite alternate;
+}
+/* Orb 2 — bottom-right — orange/amber */
+.bg-orbs .orb-2 {
+  width: 45vw; height: 45vw;
+  bottom: -20%; right: -10%;
+  background: var(--orb2-light);
+  filter: blur(60px);
+  opacity: 0.5;
+  animation: float-2 21s ease-in-out infinite alternate;
+}
+/* Orb 3 — center-left — purple/blue */
+.bg-orbs .orb-3 {
+  width: 30vw; height: 30vw;
+  top: 60%; left: 20%;
+  background: var(--orb3-light);
+  filter: blur(60px);
+  opacity: 0.4;
+  animation: float-3 20s ease-in-out infinite alternate;
+}
+
+/* Dark mode orbs */
+.dark .bg-orbs .orb-1 { background: var(--orb1-dark); opacity: 0.7; }
+.dark .bg-orbs .orb-2 { background: var(--orb2-dark); opacity: 0.6; }
+.dark .bg-orbs .orb-3 { background: var(--orb3-dark); opacity: 0.5; }
+
+/* Float keyframes — gentle drift */
+@keyframes float-1 {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(3vw, 4vh) scale(1.05); }
+  66%  { transform: translate(-2vw, 2vh) scale(0.97); }
+  100% { transform: translate(4vw, -3vh) scale(1.03); }
+}
+@keyframes float-2 {
+  0%   { transform: translate(0, 0) scale(1); }
+  40%  { transform: translate(-4vw, -3vh) scale(1.08); }
+  80%  { transform: translate(2vw, -5vh) scale(0.95); }
+  100% { transform: translate(-3vw, 2vh) scale(1.04); }
+}
+@keyframes float-3 {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(5vw, -4vh) scale(1.1); }
+  100% { transform: translate(-3vw, 3vh) scale(0.96); }
+}
+
+/* ============================================================
+   GLASS CARD SYSTEM
+   Two-layer system:
+     .glass-wrap  — outer: 1px padding, backdrop-blur, transparent bg, spotlight pseudo-els
+     .glass-card  — inner: rgba(2,6,23,0.7), inset top highlight
+   ============================================================ */
+.glass-wrap {
+  position: relative;
+  border-radius: 1.5rem;  /* 24px — rounded-3xl */
+  padding: 1px;           /* hairline gap — rim light bleeds through here */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: var(--glass-outer-bg-light);
+  box-shadow: var(--glass-outer-shadow);
+  overflow: hidden;
+  transition: transform var(--dur-std) var(--ease-out),
+              box-shadow var(--dur-slow) var(--ease-out);
+
+  /* Spotlight pseudo-elements */
+  --mx: -160px;
+  --my: -160px;
+}
+
+.dark .glass-wrap {
+  background: transparent;
+}
+
+.glass-wrap:hover {
+  transform: scale(1.01);
+}
+
+/* Spotlight orb 1 — white/slate-50, 320px, blur 100px */
+.glass-wrap::before {
+  content: '';
+  position: absolute;
+  width: 320px; height: 320px;
+  left: -160px; top: -160px;
+  background: rgba(248, 250, 252, 1);  /* slate-50 */
+  border-radius: 9999px;
+  opacity: 0.2;
+  pointer-events: none;
+  filter: blur(100px);
+  transform: translate(var(--mx), var(--my));
+  transition: opacity var(--dur-glow) ease;
+  z-index: 10;
+}
+
+/* Spotlight orb 2 — violet-100 (light) / violet-500 (dark), 384px */
+.glass-wrap::after {
+  content: '';
+  position: absolute;
+  width: 384px; height: 384px;
+  left: -192px; top: -192px;
+  background: #ede9fe;  /* violet-100 */
+  border-radius: 9999px;
+  opacity: 0.2;
+  pointer-events: none;
+  filter: blur(100px);
+  transform: translate(var(--mx), var(--my));
+  transition: opacity var(--dur-glow) ease;
+  z-index: 30;
+}
+
+.dark .glass-wrap::after {
+  background: #8b5cf6;  /* violet-500 */
+  opacity: 0;
+}
+
+.dark .glass-wrap:hover::after {
+  opacity: 0.1;
+}
+
+/* Inner card panel */
+.glass-card {
+  position: relative;
+  border-radius: inherit;
+  z-index: 20;
+  background: var(--glass-inner-bg-light);
+  box-shadow: var(--glass-inner-inset-light);
+  transition: background var(--dur-slow) var(--ease-in-out);
+  height: 100%;
+}
+
+.dark .glass-card {
+  background: var(--glass-inner-bg-dark);
+  box-shadow: var(--glass-inner-inset-dark);
+}
+
+.glass-wrap:hover .glass-card {
+  background: rgba(241, 245, 249, 0.7);
+}
+
+.dark .glass-wrap:hover .glass-card {
+  background: rgba(2, 6, 23, 0.8);
+}
+
+/* Animated card border — blue gradient lines that fade in on hover */
+.glass-wrap .card-border-h,
+.glass-wrap .card-border-v {
+  position: absolute;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+.glass-wrap:hover .card-border-h,
+.glass-wrap:hover .card-border-v {
+  opacity: 1;
+}
+
+.card-border-h {
+  height: 1px; left: 20%; right: 20%;
+  background: linear-gradient(to right, transparent, #60a5fa, #3b82f6, #2563eb, transparent);
+}
+.card-border-h.top { top: 0; }
+.card-border-h.bottom { bottom: 0; }
+
+.card-border-v {
+  width: 1px; top: 20%; bottom: 20%;
+  background: linear-gradient(to bottom, transparent, #60a5fa, #3b82f6, #2563eb, transparent);
+}
+.card-border-v.left { left: 0; }
+.card-border-v.right { right: 0; }
+
+/* ============================================================
+   STICKY NAV — centered pill with sliding active indicator
+   Verified structure from Playwright
+   ============================================================ */
+.main-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+  pointer-events: none;
+  background: transparent;
+  transition: all 1s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+}
+
+.nav-left {
+  pointer-events: auto;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.nav-pill-wrap {
+  pointer-events: auto;
+  position: relative;
+}
+
+/* The nav uses the same SpotlightCard wrapper */
+.nav-spotlight {
+  border-radius: 9999px !important;  /* override 24px for nav pill */
+  padding: 1px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: transparent;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(107, 33, 168, 0.3);
+  position: relative;
+  --mx: -160px;
+  --my: -160px;
+}
+
+.nav-spotlight::before {
+  content: '';
+  position: absolute;
+  width: 320px; height: 320px;
+  left: -160px; top: -160px;
+  background: rgba(248, 250, 252, 1);
+  border-radius: 9999px;
+  opacity: 0.2;
+  pointer-events: none;
+  filter: blur(100px);
+  transform: translate(var(--mx), var(--my));
+  transition: opacity var(--dur-glow) ease;
+  z-index: 10;
+}
+
+.nav-spotlight::after {
+  content: '';
+  position: absolute;
+  width: 384px; height: 384px;
+  left: -192px; top: -192px;
+  background: #ede9fe;
+  border-radius: 9999px;
+  opacity: 0.2;
+  pointer-events: none;
+  filter: blur(100px);
+  transform: translate(var(--mx), var(--my));
+  transition: opacity var(--dur-glow) ease;
+  z-index: 30;
+}
+
+.dark .nav-spotlight::after {
+  background: #8b5cf6;
+  opacity: 0;
+}
+
+.dark .nav-spotlight:hover::after {
+  opacity: 0.1;
+}
+
+.nav-inner {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem 0.5rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(241, 245, 249, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.dark .nav-inner {
+  background: transparent;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Sliding active indicator */
+.nav-active-bg {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.3s var(--ease-out);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dark .nav-active-bg {
+  background: rgba(51, 65, 85, 0.7);  /* slate-700/60 */
+}
+
+.nav-link {
+  position: relative;
+  z-index: 1;
+  font-size: 0.9rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  color: #4b5563;
+  font-weight: 400;
+  transition: color var(--dur-std) ease;
+  white-space: nowrap;
+}
+
+.dark .nav-link {
+  color: #d1d5db;
+}
+
+.nav-link:hover {
+  color: #3b82f6;
+}
+
+.dark .nav-link:hover {
+  color: #60a5fa;
+}
+
+.nav-link.active {
+  color: #111827;
+  font-weight: 500;
+}
+
+.dark .nav-link.active {
+  color: #f8fafc;
+  font-weight: 500;
+}
+
+.nav-right {
+  pointer-events: auto;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Theme toggle button */
+.theme-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px; height: 40px;
+  border-radius: 9999px;
+  background: #e5e7eb;
+  border: none;
+  cursor: pointer;
+  color: #111827;
+  transition: background var(--dur-std) ease, color var(--dur-std) ease;
+}
+
+.dark .theme-btn {
+  background: #1f2937;
+  color: #f8fafc;
+}
+
+.theme-btn:hover {
+  background: #d1d5db;
+}
+
+.dark .theme-btn:hover {
+  background: #374151;
+}
+
+/* ============================================================
+   PAGE LAYOUT
+   ============================================================ */
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.cl-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cl-section-title {
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.6;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid transparent;
+}
+
+.dark .cl-section-title {
+  color: var(--muted-dark);
+}
+
+.cl-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-family: 'Courier New', monospace;
+  line-height: 1.6;
+  opacity: 0.7;
+  margin-top: 0.25rem;
+}
+
+.dark .cl-label { color: var(--muted-dark); }
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+.text-xs   { font-size: 0.75rem;  line-height: 1rem; }
+.text-sm   { font-size: 0.875rem; line-height: 1.25rem; }
+.text-base { font-size: 1rem;     line-height: 1.5rem; }
+.text-lg   { font-size: 1.125rem; line-height: 1.75rem; }
+.text-xl   { font-size: 1.25rem;  line-height: 1.75rem; }
+.text-2xl  { font-size: 1.5rem;   line-height: 2rem; }
+.text-3xl  { font-size: 1.875rem; line-height: 2.25rem; }
+.text-4xl  { font-size: 2.25rem;  line-height: 2.5rem; }
+.text-6xl  { font-size: 3.75rem;  line-height: 1; }
+
+.font-light    { font-weight: 300; }
+.font-normal   { font-weight: 400; }
+.font-medium   { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold     { font-weight: 700; }
+.font-black    { font-weight: 900; }
+
+.tracking-tight   { letter-spacing: -0.05em; }
+.tracking-wide    { letter-spacing: 0.025em; }
+.tracking-wider   { letter-spacing: 0.05em; }
+.tracking-widest  { letter-spacing: 0.1em; }
+
+.text-accent { color: var(--accent); }
+.text-muted  { color: var(--muted); }
+.dark .text-muted { color: var(--muted-dark); }
+
+/* ============================================================
+   HERO PROFILE CARD
+   ============================================================ */
+.avatar {
+  width: 64px; height: 64px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; font-weight: 700; color: white;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: filter var(--dur-std) ease,
+              transform var(--dur-fast) ease,
+              opacity var(--dur-std) ease;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--btn-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: inherit;
+  border: 1px solid #e2e8f0;
+}
+
+.dark .btn-secondary {
+  border-color: #1e293b;
+}
+
+.btn-secondary:hover {
+  background: rgba(241, 245, 249, 0.6);
+  border-color: #3b82f6;
+}
+
+.dark .btn-secondary:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: #3b82f6;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: inherit;
+}
+
+.btn-ghost:hover {
+  background: #f1f5f9;
+}
+
+.dark .btn-ghost:hover {
+  background: #1e293b;
+}
+
+.btn:disabled, .btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+}
+
+/* ============================================================
+   SOCIAL LINK CARDS
+   ============================================================ */
+.social-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.social-card-wrap {
+  border-radius: 1.5rem;
+}
+
+.social-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  text-decoration: none;
+  color: #6b7280;
+  transition: color var(--dur-std) ease;
+}
+
+.dark .social-card {
+  color: #9ca3af;
+}
+
+.social-card:hover {
+  color: #1d4ed8;
+}
+
+.dark .social-card:hover {
+  color: #93c5fd;
+}
+
+.social-icon {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.social-icon svg {
+  width: 28px; height: 28px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ============================================================
+   MARQUEE
+   ============================================================ */
+.marquee-outer {
+  overflow: hidden;
+  position: relative;
+  padding: 0.5rem 0;
+}
+
+/* Fade masks — mix-blend-mode:luminosity slate-200/800 */
+.marquee-outer::before,
+.marquee-outer::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 4rem;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.marquee-outer::before {
+  left: 0;
+  background: linear-gradient(to right, rgba(255,255,255,0.9), transparent);
+}
+
+.marquee-outer::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(255,255,255,0.9), transparent);
+}
+
+.dark .marquee-outer::before {
+  background: linear-gradient(to right, rgba(2,8,23,0.9), transparent);
+}
+
+.dark .marquee-outer::after {
+  background: linear-gradient(to left, rgba(2,8,23,0.9), transparent);
+}
+
+.marquee-track {
+  display: flex;
+  gap: 0.75rem;
+  width: max-content;
+  animation: marquee-scroll 20s linear infinite;
+}
+
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.skill-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Badge gradient variants */
+.badge-tech   { background: linear-gradient(135deg, #3b82f6, #06b6d4, #14b8a6); }
+.badge-sky    { background: linear-gradient(135deg, #38bdf8, #3b82f6, #4f46e5); }
+.badge-ai     { background: linear-gradient(135deg, #a855f7, #ec4899, #ef4444); }
+.badge-purple { background: linear-gradient(135deg, #c084fc, #ec4899, #f472b6); }
+.badge-warm   { background: linear-gradient(135deg, #fb923c, #facc15, #a3e635); }
+.badge-green  { background: linear-gradient(135deg, #22c55e, #10b981, #0d9488); }
+
+/* ============================================================
+   TECH ICON CARDS
+   ============================================================ */
+.tech-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.tech-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 72px;
+  padding: 0.75rem 0.75rem 0.5rem;
+  border-radius: 1rem;
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(226,232,240,0.8);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: default;
+  transition: transform var(--dur-std) ease;
+}
+
+.dark .tech-card {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(30, 41, 59, 0.8);
+  color: #d1d5db;
+}
+
+.tech-card:hover {
+  transform: translateY(-2px);
+}
+
+.tech-icon {
+  width: 36px; height: 36px;
+  border-radius: 0.5rem;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+}
+
+/* ============================================================
+   EXPERIENCE LIST
+   ============================================================ */
+.exp-label {
+  font-size: 0.85rem;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+  color: inherit;
+}
+
+.exp-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.exp-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.exp-content { display: flex; flex-direction: column; gap: 0.2rem; }
+
+.exp-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.exp-company {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.dark .exp-company { color: #9ca3af; }
+
+.exp-date {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Past roles — strikethrough + dimmed */
+.exp-item.past .exp-title {
+  text-decoration: line-through;
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+.dark .exp-item.past .exp-title {
+  color: #6b7280;
+}
+
+/* ============================================================
+   COLOR PALETTE SWATCHES
+   ============================================================ */
+.swatch-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.swatch-color {
+  width: 64px; height: 64px;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.swatch-label {
+  font-size: 0.65rem;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.dark .swatch-label { color: var(--muted-dark); }
+
+/* ============================================================
+   SPOTLIGHT DEMO GRID
+   ============================================================ */
+.spotlight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.spotlight-grid .glass-card {
+  padding: 1.5rem;
+}
+
+/* ============================================================
+   LAYOUT UTILITIES
+   ============================================================ */
+.flex     { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.items-start  { align-items: flex-start; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.gap-1  { gap: 0.25rem; }
+.gap-2  { gap: 0.5rem; }
+.gap-3  { gap: 0.75rem; }
+.gap-4  { gap: 1rem; }
+.gap-6  { gap: 1.5rem; }
+.p-4    { padding: 1rem; }
+.p-5    { padding: 1.25rem; }
+.p-6    { padding: 1.5rem; }
+.p-8    { padding: 2rem; }
+.pt-2   { padding-top: 0.5rem; }
+.pb-2   { padding-bottom: 0.5rem; }
+.mb-2   { margin-bottom: 0.5rem; }
+.mb-4   { margin-bottom: 1rem; }
+.mb-6   { margin-bottom: 1.5rem; }
+.mt-2   { margin-top: 0.5rem; }
+.w-full { width: 100%; }
+.grid { display: grid; }
+.col-2 { grid-template-columns: repeat(2, 1fr); }
+.col-3 { grid-template-columns: repeat(3, 1fr); }
+
+/* ============================================================
+   BENTO GRID DEMO
+   ============================================================ */
+.bento-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 1rem;
+}
+
+.bento-span-2 { grid-column: span 2; }
+.bento-tall   { grid-row: span 2; }
+
+/* ============================================================
+   TAG / BADGE CHIPS (inside cards)
+   ============================================================ */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  border: 1px solid;
+}
+
+.chip-blue   { background: rgba(59,130,246,0.1);  border-color: rgba(59,130,246,0.3);  color: #60a5fa; }
+.chip-green  { background: rgba(16,185,129,0.1);  border-color: rgba(16,185,129,0.3);  color: #34d399; }
+.chip-purple { background: rgba(139,92,246,0.1);  border-color: rgba(139,92,246,0.3);  color: #a78bfa; }
+.chip-pink   { background: rgba(236,72,153,0.1);  border-color: rgba(236,72,153,0.3);  color: #f472b6; }
+.chip-amber  { background: rgba(245,158,11,0.1);  border-color: rgba(245,158,11,0.3);  color: #fbbf24; }
+
+/* ============================================================
+   SECTION HEADER (inside cards)
+   ============================================================ */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.card-header-label {
+  font-size: 0.8rem;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.card-header-action {
+  font-size: 0.75rem;
+  color: var(--accent);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.5); }
+</style>
+</head>
+
+<body>
+<!-- =========================================================
+     AMBIENT BACKGROUND ORBS
+     ========================================================= -->
+<div class="bg-orbs" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<!-- =========================================================
+     STICKY NAV — centered pill with sliding active indicator
+     ========================================================= -->
+<nav class="main-nav" id="main-nav">
+  <!-- Left: logo / site name -->
+  <div class="nav-left">
+    <span style="font-size:0.85rem; font-weight:600; opacity:0.5; letter-spacing:0.02em;">yuryprimakov.com</span>
+  </div>
+
+  <!-- Center: spotlight pill nav -->
+  <div class="nav-pill-wrap">
+    <div class="nav-spotlight" data-spot>
+      <div class="nav-inner" id="nav-inner">
+        <div class="nav-active-bg" id="nav-active-bg"></div>
+        <a href="#hero"       class="nav-link active" data-nav>About</a>
+        <a href="#skills"     class="nav-link"        data-nav>Skills</a>
+        <a href="#experience" class="nav-link"        data-nav>Experience</a>
+        <a href="#components" class="nav-link"        data-nav>Components</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: theme toggle -->
+  <div class="nav-right">
+    <button class="theme-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
+      <!-- Sun icon (shown in dark mode) -->
+      <svg id="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2M12 20v2m-7.07-14.07 1.41 1.41M17.66 17.66l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+      </svg>
+      <!-- Moon icon (shown in light mode) -->
+      <svg id="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<!-- =========================================================
+     PAGE CONTENT
+     ========================================================= -->
+<div class="page">
+
+  <!-- ── SECTION: HERO / PROFILE ───────────────────────────── -->
+  <section class="cl-section" id="hero">
+    <div class="cl-section-title">Hero — Profile / Bento Card</div>
+
+    <div class="bento-grid">
+      <!-- Profile card (spans 2 cols) -->
+      <div class="glass-wrap bento-span-2" data-spot>
+        <div class="card-border-h top"></div>
+        <div class="card-border-h bottom"></div>
+        <div class="card-border-v left"></div>
+        <div class="card-border-v right"></div>
+        <div class="glass-card p-6">
+          <div class="flex gap-4 items-center mb-4">
+            <div class="avatar" style="font-size:1.1rem;">YP</div>
+            <div>
+              <h1 class="text-4xl font-semibold tracking-tight" style="line-height:1.1;">
+                <span>Yury </span><span class="text-accent">Primakov</span>
+              </h1>
+              <p class="text-base font-normal tracking-wider" style="margin-top:0.2rem; opacity:0.7;">PRINCIPAL FULL STACK ENGINEER</p>
+            </div>
+          </div>
+          <p class="text-base" style="opacity:0.75; line-height:1.65; max-width:480px;">
+            I'm an engineer and creator who loves turning ideas into lasting, functional solutions. Guided by curiosity and first-principles thinking, I focus on elegant design, smart automation, and building systems that add real value and create meaningful impact.
+          </p>
+          <div class="flex gap-3 mt-4" style="flex-wrap:wrap;">
+            <a href="#" class="btn btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline></svg>
+              Resume
+            </a>
+            <a href="#" class="btn btn-secondary">View Projects</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Location card -->
+      <div class="glass-wrap" data-spot>
+        <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+        <div class="card-border-v left"></div><div class="card-border-v right"></div>
+        <div class="glass-card p-6 flex flex-col items-center justify-center" style="min-height:140px; text-align:center; gap:0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5;">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <span style="font-size:0.9rem; opacity:0.8;">Holmdel, NJ</span>
+        </div>
+      </div>
+    </div>
+    <div class="cl-label">Outer: rounded-3xl · p-px · backdrop-blur-md · overflow-hidden · shadow-purple-800/30<br>Inner: dark:bg-slate-950/70 · dark:shadow-[inset_0px_1px_0px_rgba(255,255,255,0.1)]<br>Spotlight: ::before 320px slate-50 blur-100 · ::after 384px violet-500 blur-100 · translate(--mx,--my)</div>
+  </section>
+
+  <!-- ── SECTION: SOCIAL LINKS ─────────────────────────────── -->
+  <section class="cl-section">
+    <div class="cl-section-title">Social Links — Icon + Label, each in glass pill</div>
+    <div class="social-grid">
+      <!-- LinkedIn -->
+      <div class="glass-wrap social-card-wrap" data-spot>
+        <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+        <div class="card-border-v left"></div><div class="card-border-v right"></div>
+        <div class="glass-card">
+          <a href="https://linkedin.com/in/yury-primakov" class="social-card" target="_blank">
+            <div class="social-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+              </svg>
+            </div>
+            <span class="text-xs font-medium">LinkedIn</span>
+          </a>
+        </div>
+      </div>
+      <!-- GitHub -->
+      <div class="glass-wrap social-card-wrap" data-spot>
+        <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+        <div class="card-border-v left"></div><div class="card-border-v right"></div>
+        <div class="glass-card">
+          <a href="https://github.com/yprimakov" class="social-card" target="_blank">
+            <div class="social-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
+              </svg>
+            </div>
+            <span class="text-xs font-medium">GitHub</span>
+          </a>
+        </div>
+      </div>
+      <!-- CodePen -->
+      <div class="glass-wrap social-card-wrap" data-spot>
+        <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+        <div class="card-border-v left"></div><div class="card-border-v right"></div>
+        <div class="glass-card">
+          <a href="https://codepen.io/yprimakov" class="social-card" target="_blank">
+            <div class="social-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5"/>
+                <line x1="12" y1="22" x2="12" y2="15.5"/>
+                <polyline points="22,8.5 12,15.5 2,8.5"/>
+                <polyline points="2,15.5 12,8.5 22,15.5"/>
+                <line x1="12" y1="2" x2="12" y2="8.5"/>
+              </svg>
+            </div>
+            <span class="text-xs font-medium">CodePen</span>
+          </a>
+        </div>
+      </div>
+      <!-- Contact -->
+      <div class="glass-wrap social-card-wrap" data-spot>
+        <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+        <div class="card-border-v left"></div><div class="card-border-v right"></div>
+        <div class="glass-card">
+          <a href="mailto:yury@example.com" class="social-card">
+            <div class="social-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </div>
+            <span class="text-xs font-medium">Contact</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="cl-label">Each social is its own glass-wrap · social-card = flex-col items-center justify-center · icon 28px · text-xs font-medium</div>
+  </section>
+
+  <!-- ── SECTION: SKILLS MARQUEE ───────────────────────────── -->
+  <section class="cl-section" id="skills">
+    <div class="cl-section-title">Skills Marquee — in glass card, animated scroll</div>
+    <div class="glass-wrap" data-spot>
+      <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+      <div class="card-border-v left"></div><div class="card-border-v right"></div>
+      <div class="glass-card p-5">
+        <div class="card-header">
+          <span class="card-header-label">Skills / Tech</span>
+          <a href="#" class="card-header-action">All Skills ↗</a>
+        </div>
+        <div class="marquee-outer">
+          <div class="marquee-track">
+            <span class="skill-badge badge-tech">JavaScript</span>
+            <span class="skill-badge badge-sky">TypeScript</span>
+            <span class="skill-badge badge-ai">React</span>
+            <span class="skill-badge badge-purple">Next.js</span>
+            <span class="skill-badge badge-green">Node.js</span>
+            <span class="skill-badge badge-warm">Python</span>
+            <span class="skill-badge badge-tech">T-SQL</span>
+            <span class="skill-badge badge-sky">CSS/SCSS</span>
+            <span class="skill-badge badge-ai">AppScript</span>
+            <span class="skill-badge badge-purple">Razor Script</span>
+            <span class="skill-badge badge-warm">XSLT/XPath</span>
+            <span class="skill-badge badge-green">C#</span>
+            <span class="skill-badge badge-tech">AI/ML</span>
+            <span class="skill-badge badge-sky">Svelte</span>
+            <!-- Duplicate for seamless loop -->
+            <span class="skill-badge badge-tech">JavaScript</span>
+            <span class="skill-badge badge-sky">TypeScript</span>
+            <span class="skill-badge badge-ai">React</span>
+            <span class="skill-badge badge-purple">Next.js</span>
+            <span class="skill-badge badge-green">Node.js</span>
+            <span class="skill-badge badge-warm">Python</span>
+            <span class="skill-badge badge-tech">T-SQL</span>
+            <span class="skill-badge badge-sky">CSS/SCSS</span>
+            <span class="skill-badge badge-ai">AppScript</span>
+            <span class="skill-badge badge-purple">Razor Script</span>
+            <span class="skill-badge badge-warm">XSLT/XPath</span>
+            <span class="skill-badge badge-green">C#</span>
+            <span class="skill-badge badge-tech">AI/ML</span>
+            <span class="skill-badge badge-sky">Svelte</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cl-label">animate-scroll · 20s linear infinite · translateX 0→-50% · fade masks via ::before/::after gradients · mix-blend-luminosity</div>
+  </section>
+
+  <!-- ── SECTION: EXPERIENCE ───────────────────────────────── -->
+  <section class="cl-section" id="experience">
+    <div class="cl-section-title">Experience — Timeline in glass card</div>
+    <div class="glass-wrap" data-spot>
+      <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+      <div class="card-border-v left"></div><div class="card-border-v right"></div>
+      <div class="glass-card p-6">
+        <h2 class="exp-label">Experience</h2>
+        <ul class="exp-list">
+          <li class="exp-item">
+            <div class="exp-content">
+              <span class="exp-title">Lead Developer</span>
+              <span class="exp-company">Prime Solutions</span>
+            </div>
+            <span class="exp-date">2021 – 2025</span>
+          </li>
+          <li class="exp-item past">
+            <div class="exp-content">
+              <span class="exp-title">Chief Technology Officer / Founding Partner</span>
+              <span class="exp-company">10,000 Hours / Tennis Learning Machine</span>
+            </div>
+            <span class="exp-date">2023 – 2025</span>
+          </li>
+          <li class="exp-item past">
+            <div class="exp-content">
+              <span class="exp-title">Lead UX Developer / Full-Stack Development Lead</span>
+              <span class="exp-company">Like Minded Software / PruTech</span>
+            </div>
+            <span class="exp-date">2018 – 2021</span>
+          </li>
+          <li class="exp-item past">
+            <div class="exp-content">
+              <span class="exp-title">Managing Partner</span>
+              <span class="exp-company">Coign Investment Group</span>
+            </div>
+            <span class="exp-date">2012 – 2018</span>
+          </li>
+          <li class="exp-item past">
+            <div class="exp-content">
+              <span class="exp-title">Lead UX Developer / Computer Software Specialist</span>
+              <span class="exp-company">NYC Department of Citywide Administrative Services</span>
+            </div>
+            <span class="exp-date">2003 – 2018</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="cl-label">Current role: full opacity + font-semibold · Past roles: text-decoration:line-through + text-gray-400 · EXPERIENCE label: text-md uppercase tracking-widest font-light</div>
+  </section>
+
+  <!-- ── SECTION: SPOTLIGHT DEMO ───────────────────────────── -->
+  <section class="cl-section" id="components">
+    <div class="cl-section-title">Spotlight Effect — Move cursor over cards</div>
+    <div class="spotlight-grid">
+      <div class="glass-wrap" data-spot>
+        <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+        <div class="card-border-v left"></div><div class="card-border-v right"></div>
+        <div class="glass-card p-6">
+          <h3 class="text-lg font-semibold mb-2">Lead Developer</h3>
+          <p class="text-sm text-muted mb-3">Prime Solutions · 2021–2025</p>
+          <div class="flex gap-2">
+            <span class="chip chip-blue">React</span>
+            <span class="chip chip-green">Node.js</span>
+          </div>
+        </div>
+      </div>
+      <div class="glass-wrap" data-spot>
+        <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+        <div class="card-border-v left"></div><div class="card-border-v right"></div>
+        <div class="glass-card p-6">
+          <h3 class="text-lg font-semibold mb-2">CTO / Founding Partner</h3>
+          <p class="text-sm text-muted mb-3">10,000 Hours · 2023–2025</p>
+          <div class="flex gap-2">
+            <span class="chip chip-purple">AI/ML</span>
+            <span class="chip chip-blue">TypeScript</span>
+          </div>
+        </div>
+      </div>
+      <div class="glass-wrap" data-spot>
+        <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+        <div class="card-border-v left"></div><div class="card-border-v right"></div>
+        <div class="glass-card p-6">
+          <h3 class="text-lg font-semibold mb-2">Lead UX Developer</h3>
+          <p class="text-sm text-muted mb-3">Multiple orgs · 2003–2021</p>
+          <div class="flex gap-2">
+            <span class="chip chip-pink">Design</span>
+            <span class="chip chip-blue">UX</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cl-label">::before 320px slate-50 blur-100 opacity-20 · ::after 384px violet-500 blur-100 opacity-0 → hover:10% dark · translate(var(--mx), var(--my)) · JS: getBoundingClientRect per card → setProperty RAF-throttled</div>
+  </section>
+
+  <!-- ── SECTION: BUTTONS ──────────────────────────────────── -->
+  <section class="cl-section">
+    <div class="cl-section-title">Buttons</div>
+    <div class="glass-wrap" data-spot>
+      <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+      <div class="card-border-v left"></div><div class="card-border-v right"></div>
+      <div class="glass-card p-6">
+        <div class="flex gap-3" style="flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline></svg>
+            Resume
+          </button>
+          <button class="btn btn-secondary">View all projects</button>
+          <button class="btn btn-ghost">Ghost</button>
+          <button class="btn btn-primary" disabled>Disabled</button>
+        </div>
+        <div class="cl-label" style="margin-top:1rem;">Primary: linear-gradient(→right, blue-400, blue-500, blue-600) · hover:brightness(1.12) translateY(-1px)<br>Secondary: transparent · border-slate-200 · hover:border-blue-500 · Ghost: hover:bg-slate-100</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION: TECH STACK ───────────────────────────────── -->
+  <section class="cl-section">
+    <div class="cl-section-title">Tech Stack — Colored icon cards, white glass</div>
+    <div class="glass-wrap" data-spot>
+      <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+      <div class="card-border-v left"></div><div class="card-border-v right"></div>
+      <div class="glass-card p-6">
+        <div class="card-header">
+          <span class="card-header-label">Skills/Tech</span>
+          <a href="#" class="card-header-action">All Skills ↗</a>
+        </div>
+        <div class="tech-grid">
+          <div class="tech-card"><div class="tech-icon" style="background:#f7df1e;">🟨</div><span>JavaScript</span></div>
+          <div class="tech-card"><div class="tech-icon" style="background:#3178c6;">🔷</div><span>TypeScript</span></div>
+          <div class="tech-card"><div class="tech-icon" style="background:#9b59b6;">💜</div><span>C#</span></div>
+          <div class="tech-card"><div class="tech-icon" style="background:#3776ab;">🐍</div><span>Python</span></div>
+          <div class="tech-card"><div class="tech-icon" style="background:#cc2927;">🗄️</div><span>T-SQL</span></div>
+          <div class="tech-card"><div class="tech-icon" style="background:#264de4;">🎨</div><span>CSS/SCSS</span></div>
+          <div class="tech-card"><div class="tech-icon" style="background:#23a559;">📋</div><span>AppScript</span></div>
+          <div class="tech-card"><div class="tech-icon" style="background:#ff3e00;">🔴</div><span>Svelte</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="cl-label">Tech card: white/80 bg · rounded-2xl · min-w-72px · brand color icon bg · hover:translateY(-2px) · text-xs font-medium</div>
+  </section>
+
+  <!-- ── SECTION: COLOR PALETTE ────────────────────────────── -->
+  <section class="cl-section">
+    <div class="cl-section-title">Color Palette — Design tokens</div>
+    <div class="glass-wrap" data-spot>
+      <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+      <div class="card-border-v left"></div><div class="card-border-v right"></div>
+      <div class="glass-card p-6">
+        <p class="text-sm font-medium mb-4" style="opacity:0.6; text-transform:uppercase; letter-spacing:0.05em;">Slate family + Blue accent</p>
+        <div class="swatch-grid">
+          <div class="swatch"><div class="swatch-color" style="background:#020817;"></div><div class="swatch-label">slate-950<br>#020817<br>page bg dark</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#0f172a;"></div><div class="swatch-label">slate-900<br>#0f172a</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#1e293b;"></div><div class="swatch-label">slate-800<br>#1e293b<br>border dark</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#334155;"></div><div class="swatch-label">slate-700<br>#334155<br>nav active</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#64748b;"></div><div class="swatch-label">slate-500<br>#64748b<br>muted light</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#94a3b8;"></div><div class="swatch-label">slate-400<br>#94a3b8<br>muted dark</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#e2e8f0;"></div><div class="swatch-label">slate-200<br>#e2e8f0<br>border light</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#f8fafc;"></div><div class="swatch-label">slate-50<br>#f8fafc<br>fg dark</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#3b82f6; box-shadow: 0 0 12px rgba(59,130,246,0.5);"></div><div class="swatch-label">blue-500<br>#3b82f6<br>★ accent</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#8b5cf6;"></div><div class="swatch-label">violet-500<br>#8b5cf6<br>spotlight dark</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:rgba(107,33,168,0.3); border:1px solid rgba(107,33,168,0.5);"></div><div class="swatch-label">purple-900/30<br>card shadow</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:linear-gradient(135deg,#60a5fa,#3b82f6,#2563eb);"></div><div class="swatch-label">btn-primary<br>blue-400→600</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION: TYPOGRAPHY ───────────────────────────────── -->
+  <section class="cl-section">
+    <div class="cl-section-title">Typography Scale — system-ui stack (no web fonts)</div>
+    <div class="glass-wrap" data-spot>
+      <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+      <div class="card-border-v left"></div><div class="card-border-v right"></div>
+      <div class="glass-card p-6">
+        <div style="display:flex; flex-direction:column; gap:1rem;">
+          <div><span class="text-6xl font-semibold tracking-tight">Heading 6xl · 60px · 600</span><div class="cl-label">text-6xl font-semibold tracking-tight — large hero text</div></div>
+          <div><span class="text-4xl font-semibold tracking-tight">Heading 4xl · 36px · 600</span><div class="cl-label">text-4xl font-semibold — h1 (name). Verified: fontSize:36px fontWeight:600</div></div>
+          <div><span class="text-3xl font-semibold">Heading 3xl · 30px · 600</span><div class="cl-label">text-3xl font-semibold — section headings</div></div>
+          <div><span class="text-2xl font-semibold">Heading 2xl · 24px · 600</span><div class="cl-label">text-2xl — h2. Verified: fontSize:24px fontWeight:600</div></div>
+          <div><span class="text-xl font-medium">Heading xl · 20px · 500</span></div>
+          <div><span class="text-lg font-medium">Body Large · 18px · 500 — card titles</span></div>
+          <div><span class="text-base">Body Base · 16px · 400 — primary text. Verified: fontSize:16px</span></div>
+          <div><span class="text-sm">Body Small · 14px — subtitles, company names</span></div>
+          <div><span class="text-xs">Caption · 12px — dates, labels, metadata</span></div>
+          <div><span class="text-sm tracking-widest font-light" style="text-transform:uppercase;">UPPERCASE LABEL · tracking-widest · font-light</span><div class="cl-label">Section labels like EXPERIENCE, SKILLS/TECH</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="cl-label">Font: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif — NO web fonts. Renders as SF Pro (macOS), Segoe UI (Windows), Roboto (Android)</div>
+  </section>
+
+  <!-- ── SECTION: GRADIENT ORBS ────────────────────────────── -->
+  <section class="cl-section">
+    <div class="cl-section-title">Ambient Orbs — Floating animated background layer</div>
+    <div class="glass-wrap" data-spot>
+      <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+      <div class="card-border-v left"></div><div class="card-border-v right"></div>
+      <div class="glass-card p-6">
+        <div class="flex gap-4" style="flex-wrap:wrap; align-items:flex-start;">
+          <div style="text-align:center;">
+            <div style="width:120px;height:120px;border-radius:9999px;background:var(--orb1-dark);filter:blur(20px);opacity:0.8;margin-bottom:0.5rem;"></div>
+            <div class="cl-label">Orb 1 — top-left<br>purple-500→slate-950/40<br>w-[40vw] blur-[80px]<br>float-1: 24s</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="width:120px;height:120px;border-radius:9999px;background:var(--orb2-dark);filter:blur(20px);opacity:0.8;margin-bottom:0.5rem;"></div>
+            <div class="cl-label">Orb 2 — bottom-right<br>amber-500/80→amber-600<br>w-[45vw] blur-[60px]<br>float-2: 21s</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="width:120px;height:120px;border-radius:9999px;background:var(--orb3-dark);filter:blur(20px);opacity:0.8;margin-bottom:0.5rem;"></div>
+            <div class="cl-label">Orb 3 — center<br>violet-700→indigo-500<br>w-[30vw] blur-[60px]<br>float-3: 20s</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="width:120px;height:120px;border-radius:9999px;background:var(--orb1-light);filter:blur(20px);opacity:0.9;margin-bottom:0.5rem;"></div>
+            <div class="cl-label">Orb 1 light mode<br>blue-300→sky-200/60</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="width:120px;height:120px;border-radius:9999px;background:var(--orb2-light);filter:blur(20px);opacity:0.9;margin-bottom:0.5rem;"></div>
+            <div class="cl-label">Orb 2 light mode<br>orange-200/80→yellow-300</div>
+          </div>
+        </div>
+        <div class="cl-label" style="margin-top:1rem;">Container: fixed inset-0 overflow-hidden z-[-10] · All orbs: position:absolute rounded-full · Keyframes: gentle drift + scale over 20–24s alternate</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION: MOTION TOKENS ────────────────────────────── -->
+  <section class="cl-section">
+    <div class="cl-section-title">Motion &amp; Animation Tokens</div>
+    <div class="glass-wrap" data-spot>
+      <div class="card-border-h top"></div><div class="card-border-h bottom"></div>
+      <div class="card-border-v left"></div><div class="card-border-v right"></div>
+      <div class="glass-card p-6">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+          <div>
+            <p class="text-sm font-medium mb-3" style="opacity:0.6; text-transform:uppercase; letter-spacing:0.05em;">Durations</p>
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+              <div class="flex items-center gap-3">
+                <div style="width:3rem;height:3px;background:var(--accent);border-radius:2px;animation:none;"></div>
+                <span class="text-sm">150ms — fast hover</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div style="width:4rem;height:3px;background:var(--accent);border-radius:2px;"></div>
+                <span class="text-sm">200ms — standard transition</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div style="width:6rem;height:3px;background:var(--accent);border-radius:2px;"></div>
+                <span class="text-sm">300ms — page transitions</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div style="width:10rem;height:3px;background:var(--accent);border-radius:2px;"></div>
+                <span class="text-sm">500ms — spotlight glow fade</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div style="width:100%;height:3px;background:var(--accent);border-radius:2px;"></div>
+                <span class="text-sm">1000ms — nav bg</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p class="text-sm font-medium mb-3" style="opacity:0.6; text-transform:uppercase; letter-spacing:0.05em;">Named Animations</p>
+            <div style="display:flex; flex-direction:column; gap:0.5rem;">
+              <div><span class="chip chip-blue">animate-scroll</span><span class="text-sm" style="margin-left:0.5rem;">20s linear infinite — marquee</span></div>
+              <div><span class="chip chip-purple">float-1/2/3</span><span class="text-sm" style="margin-left:0.5rem;">20–24s ease-in-out alternate — orbs</span></div>
+              <div><span class="chip chip-pink">spotlight</span><span class="text-sm" style="margin-left:0.5rem;">RAF + 500ms opacity — card glow</span></div>
+              <div><span class="chip chip-green">nav-slide</span><span class="text-sm" style="margin-left:0.5rem;">300ms ease-out — active indicator</span></div>
+              <div><span class="chip chip-amber">card-hover</span><span class="text-sm" style="margin-left:0.5rem;">200ms — scale(1.01) + border fade</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- end .page -->
+
+<!-- =========================================================
+     JAVASCRIPT
+     ========================================================= -->
+<script>
+/* ── SPOTLIGHT EFFECT ──────────────────────────────────────────
+   RAF-throttled mousemove → getBoundingClientRect per [data-spot]
+   → sets --mx / --my CSS custom props on each element
+   → ::before / ::after pseudo-elements translate() to cursor
+   ────────────────────────────────────────────────────────────── */
+(function() {
+  let mouseX = 0, mouseY = 0, rafQueued = false;
+
+  window.addEventListener('mousemove', function(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    if (!rafQueued) {
+      rafQueued = true;
+      requestAnimationFrame(tick);
+    }
+  });
+
+  function tick() {
+    rafQueued = false;
+    document.querySelectorAll('[data-spot]').forEach(function(el) {
+      const rect = el.getBoundingClientRect();
+      el.style.setProperty('--mx', (mouseX - rect.left) + 'px');
+      el.style.setProperty('--my', (mouseY - rect.top)  + 'px');
+    });
+  }
+})();
+
+/* ── THEME TOGGLE ──────────────────────────────────────────────
+   Toggle .dark on <html>. Persist to localStorage.
+   ────────────────────────────────────────────────────────────── */
+(function() {
+  const root = document.getElementById('root');
+  const btn  = document.getElementById('theme-toggle');
+  const sun  = document.getElementById('icon-sun');
+  const moon = document.getElementById('icon-moon');
+
+  function applyTheme(dark) {
+    if (dark) {
+      root.classList.add('dark');
+      sun.style.display  = 'block';
+      moon.style.display = 'none';
+    } else {
+      root.classList.remove('dark');
+      sun.style.display  = 'none';
+      moon.style.display = 'block';
+    }
+  }
+
+  // Load saved theme
+  const saved = localStorage.getItem('cl-theme');
+  if (saved === 'light') {
+    applyTheme(false);
+  } else {
+    applyTheme(true); // dark is default
+  }
+
+  btn.addEventListener('click', function() {
+    const isDark = root.classList.contains('dark');
+    applyTheme(!isDark);
+    localStorage.setItem('cl-theme', isDark ? 'light' : 'dark');
+  });
+})();
+
+/* ── NAV ACTIVE INDICATOR ──────────────────────────────────────
+   Sliding pill bg that follows active nav link.
+   Replicates: absolute bg-white/80 dark:bg-slate-700/60 rounded-full
+               transition-all duration-300 ease-out shadow-sm
+   ────────────────────────────────────────────────────────────── */
+(function() {
+  const navInner = document.getElementById('nav-inner');
+  const activeBg = document.getElementById('nav-active-bg');
+  const links    = navInner.querySelectorAll('.nav-link');
+
+  function positionBg(link) {
+    const navRect  = navInner.getBoundingClientRect();
+    const linkRect = link.getBoundingClientRect();
+    activeBg.style.width  = linkRect.width  + 'px';
+    activeBg.style.height = linkRect.height + 'px';
+    activeBg.style.left   = (linkRect.left - navRect.left) + 'px';
+    activeBg.style.top    = (linkRect.top  - navRect.top)  + 'px';
+  }
+
+  // Init on active link
+  const activeLink = navInner.querySelector('.nav-link.active');
+  if (activeLink) {
+    // Wait for layout to settle
+    requestAnimationFrame(function() { positionBg(activeLink); });
+  }
+
+  links.forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      links.forEach(function(l) { l.classList.remove('active'); });
+      link.classList.add('active');
+      positionBg(link);
+      // scroll to section
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+})();
+</script>
+</body>
+</html>

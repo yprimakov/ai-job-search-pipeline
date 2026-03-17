@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spotlight Glow Effect</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: #0f0f18;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #e2e8f0;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 1.1rem;
+      font-weight: 400;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 48px;
+    }
+
+    /* ─── Card grid ─────────────────────────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 280px);
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: repeat(2, 280px); }
+    }
+
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── Outer glow wrapper ────────────────────────────────────── */
+    /*
+      This is the SpotlightCard outer div.
+      - 1px padding creates the hairline border gap where glow bleeds through as rim light
+      - ::before = white/slate orb (shine layer)
+      - ::after  = violet orb (color tint layer)
+      - Both orbs start centered at top-left (-half their size) and translate to cursor pos
+      - overflow: hidden clips them to the card shape
+    */
+    .card-outer {
+      position: relative;
+      border-radius: 1.5rem;
+      padding: 1px;
+      overflow: hidden;
+
+      /* Subtle drop shadow */
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 0 transparent;
+      transition: box-shadow 0.3s ease;
+
+      --mouse-x: 0px;
+      --mouse-y: 0px;
+    }
+
+    /* White/slate shine orb */
+    .card-outer::before {
+      content: '';
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      left: -160px;
+      top: -160px;
+      background: rgba(248, 250, 252, 1);
+      border-radius: 50%;
+      opacity: 0.2;
+      pointer-events: none;
+      transition: opacity 500ms ease;
+      transform: translate(var(--mouse-x), var(--mouse-y));
+      filter: blur(100px);
+      z-index: 10;
+    }
+
+    /* Violet color tint orb */
+    .card-outer::after {
+      content: '';
+      position: absolute;
+      width: 384px;
+      height: 384px;
+      left: -192px;
+      top: -192px;
+      background: rgb(139, 92, 246);
+      border-radius: 50%;
+      opacity: 0.1;
+      pointer-events: none;
+      transition: opacity 500ms ease;
+      transform: translate(var(--mouse-x), var(--mouse-y));
+      filter: blur(100px);
+      z-index: 30;
+    }
+
+    /* ─── Inner card content ────────────────────────────────────── */
+    /*
+      Sits at z-index 20, sandwiched between the two glow layers.
+      Semi-transparent background + backdrop-blur lets glow bleed through.
+      Inset shadow creates the thin top-edge highlight (raised look).
+    */
+    .card-inner {
+      position: relative;
+      height: 100%;
+      border-radius: inherit;
+      padding: 24px;
+      z-index: 20;
+
+      background: rgba(15, 23, 42, 0.70);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+
+      box-shadow: inset 0px 1px 0px 0px rgba(255, 255, 255, 0.1);
+
+      transition: background 0.3s ease;
+    }
+
+    .card-outer:hover .card-inner {
+      background: rgba(15, 23, 42, 0.80);
+    }
+
+    /* ─── Card content styles ───────────────────────────────────── */
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(139, 92, 246, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 1.2rem;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 8px;
+    }
+
+    .card-body {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #94a3b8;
+    }
+
+    .card-tag {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      background: rgba(139, 92, 246, 0.15);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Spotlight Effect</h1>
+
+  <div class="grid" id="grid">
+
+    <div class="card-outer">
+      <div class="card-inner">
+        <div class="card-icon">✦</div>
+        <div class="card-title">Ambient Illumination</div>
+        <div class="card-body">Two blurred orbs sit behind each card and follow the cursor. The effect is diffused light, not a sharp highlight.</div>
+        <span class="card-tag">Design</span>
+      </div>
+    </div>
+
+    <div class="card-outer">
+      <div class="card-inner">
+        <div class="card-icon">⬡</div>
+        <div class="card-title">CSS Custom Properties</div>
+        <div class="card-body">Mouse coordinates are written as <code>--mouse-x</code> and <code>--mouse-y</code> on each card via JavaScript.</div>
+        <span class="card-tag">CSS</span>
+      </div>
+    </div>
+
+    <div class="card-outer">
+      <div class="card-inner">
+        <div class="card-icon">◎</div>
+        <div class="card-title">Pseudo-elements</div>
+        <div class="card-body">No extra DOM nodes needed. The <code>::before</code> and <code>::after</code> pseudo-elements carry the entire glow effect.</div>
+        <span class="card-tag">Performance</span>
+      </div>
+    </div>
+
+    <div class="card-outer">
+      <div class="card-inner">
+        <div class="card-icon">▲</div>
+        <div class="card-title">Rim Light Detail</div>
+        <div class="card-body">The 1px wrapper padding creates a hairline gap. The glow bleeds into it, forming a colored rim light at the card edge nearest the cursor.</div>
+        <span class="card-tag">Detail</span>
+      </div>
+    </div>
+
+    <div class="card-outer">
+      <div class="card-inner">
+        <div class="card-icon">◈</div>
+        <div class="card-title">Per-card Tracking</div>
+        <div class="card-body">Each card independently converts the global cursor position into local coordinates, so every card reacts simultaneously.</div>
+        <span class="card-tag">JavaScript</span>
+      </div>
+    </div>
+
+    <div class="card-outer">
+      <div class="card-inner">
+        <div class="card-icon">⬨</div>
+        <div class="card-title">Backdrop Blur</div>
+        <div class="card-body">The semi-transparent card background with backdrop-filter lets the glow bleed through from behind, deepening the lighting illusion.</div>
+        <span class="card-tag">CSS</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Track mouse position globally
+    let mouseX = 0;
+    let mouseY = 0;
+
+    // Throttle helper — only run fn at most once per `delay` ms
+    function throttle(fn, delay) {
+      let lastCall = 0;
+      return function (...args) {
+        const now = Date.now();
+        if (now - lastCall >= delay) {
+          lastCall = now;
+          fn(...args);
+        }
+      };
+    }
+
+    // Update --mouse-x and --mouse-y on every card
+    // relative to that card's own bounding box
+    function updateCards() {
+      const cards = document.querySelectorAll('.card-outer');
+      cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const x = mouseX - rect.left;
+        const y = mouseY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    }
+
+    const throttledUpdate = throttle(updateCards, 16); // ~60fps
+
+    window.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      throttledUpdate();
+    });
+  </script>
+
+</body>
+</html>
