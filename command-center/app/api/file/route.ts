@@ -4,10 +4,11 @@ import path from 'path'
 
 export const dynamic = 'force-dynamic'
 
-// Allowed base directories to prevent path traversal
+const ROOT = path.resolve(process.cwd(), '..')
+
 const ALLOWED_ROOTS = [
-  path.resolve(process.cwd(), '..', 'applications'),
-  path.resolve(process.cwd(), '..', 'resume'),
+  path.resolve(ROOT, 'applications'),
+  path.resolve(ROOT, 'resume'),
 ]
 
 export async function GET(req: NextRequest) {
@@ -18,8 +19,9 @@ export async function GET(req: NextRequest) {
 
   const resolved = path.resolve(filePath)
 
-  // Security: ensure the resolved path is within an allowed root
-  const allowed = ALLOWED_ROOTS.some(root => resolved.startsWith(root))
+  // Case-insensitive comparison for Windows compatibility
+  const resolvedLower = resolved.toLowerCase()
+  const allowed = ALLOWED_ROOTS.some(root => resolvedLower.startsWith(root.toLowerCase()))
   if (!allowed) {
     return new NextResponse('Forbidden', { status: 403 })
   }
@@ -49,9 +51,8 @@ export async function GET(req: NextRequest) {
     headers: {
       'Content-Type': contentType,
       'Content-Length': String(buffer.length),
-      'Content-Disposition': ext === '.pdf'
-        ? `inline; filename="${path.basename(resolved)}"`
-        : 'inline',
+      'Content-Disposition': 'inline',
+      'Cache-Control': 'private, max-age=60',
     },
   })
 }

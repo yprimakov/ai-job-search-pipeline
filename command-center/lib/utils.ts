@@ -8,6 +8,12 @@ export function cn(...inputs: ClassValue[]) {
 export function formatDate(dateStr: string): string {
   if (!dateStr) return ''
   try {
+    // Parse YYYY-MM-DD as local time to avoid UTC midnight -> previous day shift
+    const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (m) {
+      const d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]))
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    }
     return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'short', day: 'numeric', year: 'numeric',
     })

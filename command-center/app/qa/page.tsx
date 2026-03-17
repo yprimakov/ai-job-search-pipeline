@@ -20,7 +20,7 @@ function QARowItem({ row, onSave }: { row: QARow; onSave: () => void }) {
     await fetch(`/api/qa/${row._id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answer }),
+      body: JSON.stringify({ Answer: answer }),
     })
     setSaving(false)
     setSaved(true)

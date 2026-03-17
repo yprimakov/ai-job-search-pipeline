@@ -23,6 +23,10 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+
+    /* Glass surfaces */
+    --glass-outer: rgba(241, 245, 249, 0.4);
+    --glass-inner: rgba(241, 245, 249, 0.65);
   }
 
   .dark {
@@ -43,6 +47,10 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
+    /* Glass surfaces */
+    --glass-outer: rgba(15, 23, 42, 0.5);
+    --glass-inner: rgba(2, 6, 23, 0.75);
   }
 
   * {
@@ -55,10 +63,36 @@
   }
 }
 
+/* ── Lava lamp orb animations ────────────────────────────────────────────── */
+@keyframes orbFloat1 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  25%       { transform: translate(40px, -30px) scale(1.06); }
+  50%       { transform: translate(15px, 50px) scale(0.94); }
+  75%       { transform: translate(-35px, 20px) scale(1.03); }
+}
+
+@keyframes orbFloat2 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  30%       { transform: translate(-30px, 25px) scale(0.96); }
+  60%       { transform: translate(25px, -40px) scale(1.07); }
+  80%       { transform: translate(-15px, -20px) scale(0.97); }
+}
+
+@keyframes orbFloat3 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  35%       { transform: translate(20px, -25px) scale(1.08); }
+  70%       { transform: translate(-25px, 20px) scale(0.93); }
+}
+
+.orb-1 { animation: orbFloat1 28s ease-in-out infinite; }
+.orb-2 { animation: orbFloat2 35s ease-in-out infinite; }
+.orb-3 { animation: orbFloat3 22s ease-in-out infinite; }
+
 /* ── Spotlight card glow ─────────────────────────────────────────────────── */
 .spotlight-card {
   position: relative;
   overflow: hidden;
+  background: var(--glass-inner);
 }
 
 .spotlight-card::before,
@@ -79,8 +113,8 @@
   top: -160px;
   background: rgba(248, 250, 252, 1);
   filter: blur(100px);
-  opacity: 0.12;
-  z-index: 10;
+  opacity: 0.10;
+  z-index: 1;
   transform: translate(var(--mouse-x, 0px), var(--mouse-y, 0px));
 }
 
@@ -92,7 +126,7 @@
   top: -192px;
   filter: blur(100px);
   opacity: 0;
-  z-index: 10;
+  z-index: 1;
   transform: translate(var(--mouse-x, 0px), var(--mouse-y, 0px));
   transition: opacity 500ms ease;
 }
@@ -106,42 +140,40 @@
 }
 
 .spotlight-card:hover::after {
-  opacity: 0.12;
+  opacity: 0.15;
 }
 
-/* ── Animated card border on hover ──────────────────────────────────────── */
-.card-border-top,
-.card-border-bottom,
-.card-border-left,
-.card-border-right {
+/* ── Glassmorphic card wrapper ───────────────────────────────────────────── */
+.glass-card-wrapper {
+  position: relative;
+}
+
+/* Gradient border on hover — uses mask trick so it clips to border-radius */
+.glass-card-wrapper::before {
+  content: '';
   position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    transparent 15%,
+    rgba(96, 165, 250, 0.9) 45%,
+    rgba(59, 130, 246, 1) 55%,
+    transparent 85%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
   opacity: 0;
   transition: opacity 300ms ease;
   pointer-events: none;
-  z-index: 20;
+  z-index: 30;
 }
 
-.card-border-top {
-  top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(to right, transparent, #60a5fa, #3b82f6, #2563eb, transparent);
-}
-.card-border-bottom {
-  bottom: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(to right, transparent, #60a5fa, #3b82f6, #2563eb, transparent);
-}
-.card-border-left {
-  left: 0; top: 0; bottom: 0; width: 1px;
-  background: linear-gradient(to bottom, transparent, #60a5fa, #3b82f6, #2563eb, transparent);
-}
-.card-border-right {
-  right: 0; top: 0; bottom: 0; width: 1px;
-  background: linear-gradient(to bottom, transparent, #60a5fa, #3b82f6, #2563eb, transparent);
-}
-
-.glass-card-wrapper:hover .card-border-top,
-.glass-card-wrapper:hover .card-border-bottom,
-.glass-card-wrapper:hover .card-border-left,
-.glass-card-wrapper:hover .card-border-right {
+.glass-card-wrapper:hover::before {
   opacity: 1;
 }
 
@@ -188,7 +220,7 @@
 }
 
 /* ── Status badge gradients ──────────────────────────────────────────────── */
-.badge-applied     { background: linear-gradient(to right, #3b82f6, #06b6d4); }
+.badge-applied      { background: linear-gradient(to right, #3b82f6, #06b6d4); }
 .badge-phone-screen { background: linear-gradient(to right, #38bdf8, #4f46e5); }
 .badge-interview    { background: linear-gradient(to right, #a855f7, #ec4899); }
 .badge-assessment   { background: linear-gradient(to right, #fb923c, #facc15); }

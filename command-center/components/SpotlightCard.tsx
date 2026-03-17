@@ -21,7 +21,7 @@ export function SpotlightCard({
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return
-    if (rafRef.current) return // RAF-gated
+    if (rafRef.current) return
 
     rafRef.current = requestAnimationFrame(() => {
       if (!cardRef.current) { rafRef.current = null; return }
@@ -37,35 +37,29 @@ export function SpotlightCard({
   return (
     <div
       className={cn(
-        'glass-card-wrapper relative rounded-3xl p-px backdrop-blur-md transition-transform duration-200',
+        'glass-card-wrapper rounded-3xl p-px backdrop-blur-md transition-transform duration-200',
         hover && 'hover:scale-[1.01]',
         className,
       )}
       style={{
         background: 'var(--glass-outer)',
-        boxShadow: 'rgba(107,33,168,0.2) 0px 25px 50px -12px',
+        boxShadow: 'rgba(107, 33, 168, 0.2) 0px 20px 40px -12px',
       }}
     >
-      {/* Animated border lines */}
-      <div className="card-border-top" />
-      <div className="card-border-bottom" />
-      <div className="card-border-left" />
-      <div className="card-border-right" />
-
       {/* Inner frosted surface with spotlight glow */}
       <div
         ref={cardRef}
         onMouseMove={handleMouseMove}
         className={cn(
-          'spotlight-card relative rounded-[inherit] backdrop-blur-md overflow-hidden',
+          'spotlight-card rounded-[inherit] backdrop-blur-md overflow-hidden h-full',
           innerClassName,
         )}
         style={{
-          boxShadow: 'inset 0px 1px 0px rgba(255,255,255,0.1)',
+          boxShadow: 'inset 0px 1px 0px rgba(255,255,255,0.08)',
         }}
       >
-        {/* Content sits above glow at z-20 */}
-        <div className="relative z-20">
+        {/* Content sits above glow pseudo-elements (z-index 10) */}
+        <div className="relative z-10">
           {children}
         </div>
       </div>
