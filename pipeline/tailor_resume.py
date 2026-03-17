@@ -27,6 +27,8 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
+from profile import PROFILE
+
 # ── Paths ──────────────────────────────────────────────────────────────────────
 SCRIPT_DIR = Path(__file__).parent
 BASE_RESUME = SCRIPT_DIR / "resume_base.md"
@@ -130,11 +132,12 @@ TARGET JOB ANALYSIS:
 TAILORING RULES:
 1. Professional Summary: Rewrite to speak directly to this role. Mirror language from the JD. Lead with the most relevant experience. Keep to 3-4 sentences. No trailing punctuation artifacts.
 2. Technical Skills: Reorder skill categories so the most relevant to this JD appear first. Move JD-mentioned technologies to the top of their category. Do not add skills Yury doesn't have. End each skill line cleanly — no trailing punctuation or separators.
-3. Experience Bullets: Rewrite bullets to use JD keywords where genuinely applicable. Quantify impact where possible. Lead each bullet with a strong action verb. For Prime Solutions especially — connect Yury's independent work directly to what this role needs.
+3. Experience Bullets: Rewrite bullets to use JD keywords where genuinely applicable. Quantify impact where possible. Lead each bullet with a strong action verb. For {current_employer} especially — connect the candidate's independent work directly to what this role needs.
 4. Experience Order: Always keep chronological order but trim bullets in less relevant roles to 1-2 lines max.
 5. ATS Keywords: Naturally embed the top ATS keywords from the analysis into the summary, skills, and bullets. Never keyword-stuff — every keyword must be in context.
 6. Do NOT fabricate experience, tools, or results. Only reframe what's genuinely there.
-7. If the JD has a domain Yury lacks (e.g., P&C insurance), briefly acknowledge transferable skills rather than pretending domain expertise.
+7. If the JD has a domain the candidate lacks (e.g., P&C insurance), briefly acknowledge transferable skills rather than pretending domain expertise.
+8. Preserve ALL project URLs and hyperlinks exactly as they appear in the base resume. Links demonstrate real project scale and measurable impact to recruiters — never remove or alter them. If a bullet references a live site or project link, keep it verbatim.
 
 STRICT FORMATTING RULES — violating any of these is unacceptable:
 - NEVER use em dashes (—). Replace with a comma, colon, semicolon, or rewrite the sentence.
@@ -161,6 +164,7 @@ def tailor_resume(client: anthropic.Anthropic, base_resume: str, analysis: dict)
                 "content": TAILOR_PROMPT.format(
                     base_resume=base_resume,
                     analysis=json.dumps(analysis, indent=2),
+                    current_employer=PROFILE["current_employer"],
                 ),
             }
         ],
@@ -307,6 +311,17 @@ def build_html(resume_md: str, job_title: str, company: str) -> str:
     if current_job:
         exp_blocks.append(current_job)
 
+    def render_inline(text: str) -> str:
+        """HTML-escape text while preserving [label](url) markdown links as <a> tags."""
+        parts = []
+        last = 0
+        for m in re.finditer(r'\[([^\]]+)\]\((https?://[^)]+)\)', text):
+            parts.append(html_lib.escape(text[last:m.start()]))
+            parts.append(f'<a href="{html_lib.escape(m.group(2))}">{html_lib.escape(m.group(1))}</a>')
+            last = m.end()
+        parts.append(html_lib.escape(text[last:]))
+        return "".join(parts)
+
     def skill_to_html(s):
         m = re.match(r"\*\*(.+?):\*\*\s*(.*)", s)
         if m:
@@ -316,7 +331,7 @@ def build_html(resume_md: str, job_title: str, company: str) -> str:
     skills_html = "\n".join(skill_to_html(s) for s in skills_lines)
 
     def job_to_html(j):
-        bullets = "\n".join(f"<li>{html_lib.escape(b)}</li>" for b in j["bullets"])
+        bullets = "\n".join(f"<li>{render_inline(b)}</li>" for b in j["bullets"])
         return f"""
   <div class="job">
     <div class="job-header">
@@ -643,10 +658,9 @@ def main():
 
     tailored = tailor_resume(client, base_resume, analysis)
 
-    candidate_name = parse_resume_header(base_resume)["name"]
     cover = ""
     if not args.no_cover:
-        cover = generate_cover_snippet(client, analysis, candidate_name)
+        cover = generate_cover_snippet(client, analysis, PROFILE["full_name"])
 
     # Save everything to per-job folder
     job_dir = save_job_folder(jd_text, analysis, tailored, cover)

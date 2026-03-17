@@ -143,7 +143,7 @@ def cmd_log(args):
         "Follow Up Date": args.follow_up or "",
     }
     append_csv(TRACKER_FILE, TRACKER_HEADERS, row)
-    print(f"✓ Logged application: {args.title} @ {args.company}")
+    print(f"[ok] Logged application: {args.title} @ {args.company}")
 
 
 def cmd_question(args):
@@ -152,10 +152,10 @@ def cmd_question(args):
     # Check for similar existing answers first
     similar = semantic_lookup(args.q, rows)
     if similar:
-        print("\n⚡ Similar questions already answered:")
+        print("\n[!] Similar questions already answered:")
         for r in similar:
             print(f"  [{r['Question ID']}] {r['Question']}")
-            print(f"  → {r['Answer']}\n")
+            print(f"  -> {r['Answer']}\n")
         cont = input("Still log as new question? (y/N): ").strip().lower()
         if cont != "y":
             return
@@ -170,7 +170,7 @@ def cmd_question(args):
         "Notes": "",
     }
     append_csv(QA_FILE, QA_HEADERS, row)
-    print(f"✓ Recorded question {qid}: {args.q}")
+    print(f"[ok] Recorded question {qid}: {args.q}")
     print(f"  Run: python tracker.py answer --id {qid} --answer \"your answer\"")
 
 
@@ -187,7 +187,7 @@ def cmd_answer(args):
     if not updated:
         sys.exit(f"Error: Question ID {args.id} not found.")
     write_csv(QA_FILE, QA_HEADERS, rows)
-    print(f"✓ Answer saved for {args.id}")
+    print(f"[ok] Answer saved for {args.id}")
 
 
 def cmd_pending(args):
@@ -210,10 +210,10 @@ def cmd_list(args):
     print(f"\n{len(rows)} application(s):\n")
     for r in rows:
         status = r.get("Application Status", "")
-        ea = "⚡" if r.get("Easy Apply") == "Yes" else "  "
+        ea = "[EA]" if r.get("Easy Apply") == "Yes" else "    "
         print(f"  {ea} [{r.get('Date Applied')}] {r.get('Job Title')} @ {r.get('Company')} — {status}")
         if r.get("Salary Range"):
-            print(f"      💰 {r.get('Salary Range')} | {r.get('Work Mode')}")
+            print(f"      $ {r.get('Salary Range')} | {r.get('Work Mode')}")
 
 
 def cmd_lookup(args):
@@ -242,7 +242,7 @@ def cmd_update_status(args):
     if not updated:
         sys.exit(f"Error: No matching application found for {args.title} @ {args.company}")
     write_csv(TRACKER_FILE, TRACKER_HEADERS, rows)
-    print(f"✓ Status updated to '{args.status}' for {args.title} @ {args.company}")
+    print(f"[ok] Status updated to '{args.status}' for {args.title} @ {args.company}")
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
