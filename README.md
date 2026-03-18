@@ -2,20 +2,6 @@
 
 An AI-powered job search system that tailors your resume, tracks every application, and manages the full pipeline from job discovery to follow-up — with a local web Command Center and Claude API at the core.
 
-## Screenshots
-
-### Dashboard
-![Dashboard](documentation/screenshots/dashboard.png)
-
-### Applications List
-![Applications](documentation/screenshots/applications-list.png)
-
-### Application Detail — ATS Analysis
-![ATS Analysis](documentation/screenshots/application-detail-ats.png)
-
-### Job Queue
-![Job Queue](documentation/screenshots/jobs-queue.png)
-
 ---
 
 ## What it does
