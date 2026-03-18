@@ -1,0 +1,205 @@
+"""
+process_queue.py
+================
+Processes pending items in jobs/queue.json.
+
+For each pending item:
+  - LinkedIn URLs: uses Playwright with the saved ~/.job-seeker-linkedin session
+    (same profile used by the scraper, already logged in)
+  - Other URLs: plain HTTP fetch
+Then runs tailor_resume.py with the extracted JD and marks the item ready/failed.
+
+Usage:
+    python pipeline/process_queue.py
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import subprocess
+import sys
+import tempfile
+from datetime import datetime
+from pathlib import Path
+
+load_dotenv_path = Path(__file__).parent.parent / ".env"
+try:
+    from dotenv import load_dotenv
+    load_dotenv(load_dotenv_path)
+except ImportError:
+    pass
+
+REPO_ROOT = Path(__file__).parent.parent
+QUEUE_FILE = REPO_ROOT / "jobs" / "queue.json"
+PIPELINE_DIR = Path(__file__).parent
+LINKEDIN_PROFILE = Path.home() / ".job-seeker-linkedin"
+
+
+# ---------------------------------------------------------------------------
+# Queue I/O
+# ---------------------------------------------------------------------------
+
+def read_queue() -> list[dict]:
+    try:
+        if QUEUE_FILE.exists():
+            return json.loads(QUEUE_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return []
+
+
+def write_queue(items: list[dict]) -> None:
+    QUEUE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    QUEUE_FILE.write_text(json.dumps(items, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# JD fetching
+# ---------------------------------------------------------------------------
+
+def _strip_html(html: str) -> str:
+    text = re.sub(r"<script[^>]*>[\s\S]*?</script>", " ", html, flags=re.IGNORECASE)
+    text = re.sub(r"<style[^>]*>[\s\S]*?</style>", " ", text, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", " ", text)
+    for entity, char in [("&nbsp;", " "), ("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">")]:
+        text = text.replace(entity, char)
+    return " ".join(text.split())
+
+
+def fetch_jd_http(url: str) -> str:
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        html = r.read().decode("utf-8", errors="replace")
+    return _strip_html(html)
+
+
+def fetch_jd_playwright(url: str) -> str:
+    try:
+        from playwright.sync_api import sync_playwright  # type: ignore
+    except ImportError:
+        raise RuntimeError(
+            "Playwright not installed.\n"
+            "Run: pip install playwright && playwright install chromium"
+        )
+
+    LINKEDIN_PROFILE.mkdir(exist_ok=True)
+    jd_selectors = [
+        ".jobs-description__content",
+        ".jobs-description-content__text",
+        "#job-details",
+        ".description__text",
+        ".job-view-layout",
+    ]
+
+    with sync_playwright() as pw:
+        context = pw.chromium.launch_persistent_context(
+            str(LINKEDIN_PROFILE),
+            headless=True,
+            viewport={"width": 1280, "height": 900},
+        )
+        page = context.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(3000)
+
+            jd_text = ""
+            for selector in jd_selectors:
+                try:
+                    el = page.query_selector(selector)
+                    if el:
+                        jd_text = (el.inner_text() or "").strip()
+                        if len(jd_text) > 200:
+                            break
+                except Exception:
+                    pass
+
+            if len(jd_text) < 200:
+                # Fallback: full page text (strip nav/header noise)
+                jd_text = (page.inner_text("body") or "").strip()
+        finally:
+            context.close()
+
+    return jd_text
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    items = read_queue()
+    pending = [i for i in items if i.get("status") == "pending"]
+
+    if not pending:
+        print("No pending items in the queue.")
+        return
+
+    print(f"Processing {len(pending)} queued job(s)...\n")
+    print("=" * 60)
+
+    for item in pending:
+        url = item.get("url", "")
+        item_id = item.get("id", "?")
+        is_linkedin = "linkedin.com" in url.lower()
+
+        print(f"\n[{item_id}] {url}")
+
+        item["status"] = "processing"
+        write_queue(items)
+
+        try:
+            if is_linkedin:
+                print("  Fetching JD via Playwright (LinkedIn session)...")
+                jd_text = fetch_jd_playwright(url)
+            else:
+                print("  Fetching JD via HTTP...")
+                jd_text = fetch_jd_http(url)
+
+            if len(jd_text) < 200:
+                raise RuntimeError(
+                    "Page content too short — LinkedIn may require a fresh login. "
+                    "Run the scraper once to refresh the session."
+                )
+
+            print(f"  JD extracted ({len(jd_text):,} chars). Running tailor_resume.py...")
+
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".txt", delete=False, encoding="utf-8"
+            ) as f:
+                f.write(jd_text)
+                tmp_path = Path(f.name)
+
+            try:
+                result = subprocess.run(
+                    [sys.executable, "tailor_resume.py", "--jd", str(tmp_path)],
+                    cwd=str(PIPELINE_DIR),
+                    timeout=300,
+                )
+                if result.returncode != 0:
+                    raise RuntimeError(f"tailor_resume.py exited with code {result.returncode}")
+            finally:
+                tmp_path.unlink(missing_ok=True)
+
+            item["status"] = "ready"
+            item["completedAt"] = datetime.now().isoformat()
+            print("  Done.")
+
+        except Exception as exc:
+            item["status"] = "failed"
+            item["error"] = str(exc)
+            print(f"  Failed: {exc}")
+
+        write_queue(items)
+
+    print("\n" + "=" * 60)
+    ready = sum(1 for i in items if i["status"] == "ready")
+    failed = sum(1 for i in items if i["status"] == "failed")
+    print(f"Queue complete: {ready} ready, {failed} failed.")
+    if failed:
+        print("Failed items remain in the queue — check the error field for details.")
+
+
+if __name__ == "__main__":
+    main()
