@@ -31,6 +31,14 @@ type LinkedInJob = {
   fit_reason?: string
 }
 
+async function queueUrl(jobUrl: string) {
+  await fetch('/api/jobs/queue', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: jobUrl }),
+  })
+}
+
 const STATUS_COLORS: Record<string, string> = {
   pending:    'text-yellow-600 dark:text-yellow-400 bg-yellow-400/10',
   processing: 'text-blue-600 dark:text-blue-400 bg-blue-400/10',
@@ -39,8 +47,8 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 function ScoreBadge({ score }: { score?: number }) {
-  if (score == null) return null
-  const color = score >= 4 ? 'text-green-600 dark:text-green-400' : score >= 3 ? 'text-yellow-600 dark:text-yellow-400' : 'text-muted-foreground'
+  if (score == null) return <span className="text-xs text-muted-foreground/40">-</span>
+  const color = score >= 4 ? 'text-green-600 dark:text-green-400' : score >= 3 ? 'text-yellow-600 dark:text-yellow-400' : score >= 1 ? 'text-muted-foreground' : 'text-muted-foreground/40'
   return (
     <span className={`flex items-center gap-1 text-xs font-medium ${color}`}>
       <Star size={10} fill="currentColor" /> {score}
@@ -224,7 +232,12 @@ export default function JobsPage() {
         {/* URL submission */}
         <SpotlightCard>
           <div className="p-5 space-y-4">
-            <h2 className="text-sm font-semibold">Add Job URL to Queue</h2>
+            <div>
+              <h2 className="text-sm font-semibold">Add Job URL to Queue</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Best for public job boards (Greenhouse, Lever, Workday). LinkedIn URLs require login and will fail.
+              </p>
+            </div>
             <div className="flex gap-2">
               <input
                 value={url}
@@ -425,33 +438,35 @@ export default function JobsPage() {
       {linkedInJobs.length > 0 && (
         <SpotlightCard>
           <div className="p-5">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div>
                 <h2 className="text-sm font-semibold">LinkedIn Results</h2>
                 {results?.query && (
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Query: {results.query} {results.date && `· ${formatDate(results.date)}`}
+                    {results.date && `${formatDate(results.date)} · `}{linkedInJobs.length} jobs
                   </p>
                 )}
               </div>
-              <span className="text-xs text-muted-foreground">{linkedInJobs.length} jobs</span>
+              <p className="text-xs text-muted-foreground/60 italic max-w-xs text-right">
+                Scores 4-5 are strong matches. Click the link icon to view on LinkedIn, copy the JD, then tailor your resume.
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="data-table w-full">
                 <thead>
                   <tr className="border-b border-border/60">
-                    <th>Score</th>
+                    <th title="Claude Haiku fit score (1-5)">Score</th>
                     <th>Company</th>
                     <th>Title</th>
                     <th>Location</th>
                     <th>Salary</th>
-                    <th>EA</th>
+                    <th title="Easy Apply via LinkedIn">EA</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {linkedInJobs.map((job, i) => (
-                    <tr key={i}>
+                    <tr key={i} title={job.fit_reason || undefined}>
                       <td><ScoreBadge score={job.score} /></td>
                       <td className="font-medium max-w-[120px] truncate">{job.company}</td>
                       <td className="max-w-[200px] truncate text-muted-foreground">{job.title}</td>
@@ -466,13 +481,15 @@ export default function JobsPage() {
                         <div className="flex items-center gap-2">
                           {job.url && (
                             <a href={job.url} target="_blank" rel="noopener noreferrer"
-                              className="text-muted-foreground hover:text-foreground transition-colors">
+                              className="text-muted-foreground hover:text-foreground transition-colors"
+                              title="Open on LinkedIn">
                               <ExternalLink size={11} />
                             </a>
                           )}
                           <button
-                            onClick={() => setUrl(job.url)}
-                            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors">
+                            onClick={async () => { await queueUrl(job.url); mutateQueue() }}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors"
+                            title="Add to processing queue (works best for non-LinkedIn URLs)">
                             Queue
                           </button>
                         </div>
