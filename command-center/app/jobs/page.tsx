@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import {
   Plus, Trash2, RefreshCw, Loader2, ExternalLink, Star, Sparkles,
-  X, Check, AlertTriangle, Play, Square, ChevronDown, ChevronUp,
+  X, Check, AlertTriangle, Play, Square, ChevronDown, ChevronUp, StopCircle,
 } from 'lucide-react'
 import { SpotlightCard } from '@/components/SpotlightCard'
 import { useWS } from '@/lib/ws-client'
@@ -82,6 +82,14 @@ export default function JobsPage() {
     setScraping(false)
     setScrapeOutput(prev => prev ? prev + '\n\nDone. Scroll down to see results.' : '')
   }, [mutateQueue, mutateResults]))
+
+  // Sync scraping state with server sentinel on mount
+  useEffect(() => {
+    fetch('/api/pipeline/scrape')
+      .then(r => r.json())
+      .then(d => { if (d.running) setScraping(true) })
+      .catch(() => {})
+  }, [])
 
   // ── Scraper state ────────────────────────────────────────────────
   const [selectedTitles, setSelectedTitles] = useState<string[]>([])
@@ -226,6 +234,18 @@ export default function JobsPage() {
     }
   }
 
+  async function stopScraper() {
+    await fetch('/api/pipeline/scrape/stop', { method: 'POST' })
+    setScraping(false)
+    setScrapeOutput(prev => prev + '\n\nScraper stopped.')
+  }
+
+  async function clearResults() {
+    await fetch('/api/jobs/results', { method: 'DELETE' })
+    mutateResults()
+    setSelectedJobs(new Set())
+  }
+
   // ── Results selection ─────────────────────────────────────────────
   const linkedInJobs = results?.jobs ?? []
 
@@ -353,7 +373,7 @@ export default function JobsPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-1.5 min-h-[52px] p-2 rounded-lg bg-secondary/30 border border-border/40">
+            <div className="flex flex-wrap gap-1.5 min-h-[52px] p-2 rounded-lg bg-secondary/30 border border-border/40 overflow-hidden">
               {availableTitles.length === 0 && !addingTitle && (
                 <p className="text-xs text-muted-foreground self-center mx-auto">
                   Click &quot;Suggest from Resume&quot; to generate titles, or type one below
@@ -422,7 +442,7 @@ export default function JobsPage() {
                 }}
                 placeholder="+ Add title..."
                 disabled={savingTitles}
-                className="flex-1 min-w-[120px] px-2 py-1 text-xs bg-transparent outline-none
+                className="min-w-[120px] px-2 py-1 text-xs bg-transparent outline-none
                   placeholder:text-muted-foreground/40 text-foreground"
               />
             </div>
@@ -444,17 +464,29 @@ export default function JobsPage() {
               Easy Apply
             </label>
 
-            <button
-              onClick={runScraper}
-              disabled={scraping || selectedTitles.length === 0}
-              className="ml-auto flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium
-                bg-secondary/60 hover:bg-secondary border border-border/60 transition-colors disabled:opacity-50"
-            >
-              {scraping
-                ? <><Loader2 size={13} className="animate-spin" /> Scraping...</>
-                : <><RefreshCw size={13} /> Run Scraper ({selectedTitles.length})</>
-              }
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+              {scraping && (
+                <button
+                  onClick={stopScraper}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                    bg-red-500/10 border border-red-500/40 text-red-600 dark:text-red-400
+                    hover:bg-red-500/20 transition-colors"
+                >
+                  <StopCircle size={13} /> Stop
+                </button>
+              )}
+              <button
+                onClick={runScraper}
+                disabled={scraping || selectedTitles.length === 0}
+                className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium
+                  bg-secondary/60 hover:bg-secondary border border-border/60 transition-colors disabled:opacity-50"
+              >
+                {scraping
+                  ? <><Loader2 size={13} className="animate-spin" /> Scraping...</>
+                  : <><RefreshCw size={13} /> Run Scraper ({selectedTitles.length})</>
+                }
+              </button>
+            </div>
           </div>
 
           {scrapeOutput && (
@@ -471,10 +503,18 @@ export default function JobsPage() {
           <div className="flex items-center justify-between mb-4">
             <StepBadge n={2} label="Review Results & Select" />
             {linkedInJobs.length > 0 && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <p className="text-xs text-muted-foreground">
                   {results?.date && formatDate(results.date)} · {linkedInJobs.length} jobs
                 </p>
+                <button
+                  onClick={clearResults}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground/60
+                    hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                  title="Clear results list"
+                >
+                  <Trash2 size={11} /> Clear
+                </button>
               </div>
             )}
           </div>

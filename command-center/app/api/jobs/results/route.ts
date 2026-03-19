@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { readLinkedInResults } from '@/lib/csv'
+import fs from 'fs'
+import path from 'path'
 
 export const dynamic = 'force-dynamic'
 
@@ -94,4 +96,11 @@ export async function GET() {
   const md = readLinkedInResults()
   const parsed = parseLinkedInMd(md)
   return NextResponse.json(parsed)
+}
+
+// DELETE /api/jobs/results — clear the linkedin_results.md file
+export async function DELETE() {
+  const p = path.join(process.cwd(), '..', 'jobs', 'linkedin_results.md')
+  try { fs.unlinkSync(p) } catch { /* already gone */ }
+  return NextResponse.json({ ok: true })
 }

@@ -5,6 +5,14 @@ import fs from 'fs'
 
 export const dynamic = 'force-dynamic'
 
+const rootDir = path.resolve(process.cwd(), '..')
+const SENTINEL = path.join(rootDir, 'jobs', '.scraper_running')
+
+// GET /api/pipeline/scrape — check if scraper is currently running
+export async function GET() {
+  return NextResponse.json({ running: fs.existsSync(SENTINEL) })
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as {
     queries?: string[]   // multi-title run
@@ -26,7 +34,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'At least one search query is required.' }, { status: 400 })
   }
 
-  const rootDir  = path.resolve(process.cwd(), '..')
   const script   = path.join(rootDir, 'pipeline', 'linkedin_scraper.py')
   const merger   = path.join(rootDir, 'pipeline', 'merge_linkedin_results.py')
 
@@ -35,32 +42,42 @@ export async function POST(req: NextRequest) {
   if (body.easyApply !== false) flags.push('--easy-apply')
   if (body.pages)               flags.push(`--pages ${body.pages}`)
 
-  const batLines: string[] = ['@echo off', `cd /d "${rootDir}"`, 'echo Running LinkedIn scraper...', 'echo.']
+  // Sentinel: presence of this file means the scraper is running
+  const batLines: string[] = [
+    '@echo off',
+    `cd /d "${rootDir}"`,
+    `echo. > "${SENTINEL}"`,
+    'echo Running LinkedIn scraper...',
+    'echo.',
+  ]
 
   if (queries.length === 1) {
-    // Single query — write straight to linkedin_results.md
     batLines.push(`python "${script}" --query "${queries[0]}" ${flags.join(' ')}`)
   } else {
-    // Multiple queries — write to temp files then merge
     queries.forEach((q, i) => {
       const tmpOut = path.join(rootDir, 'jobs', `.tmp_results_${i}.md`)
       batLines.push(`echo Searching: ${q}`)
       batLines.push(`python "${script}" --query "${q}" ${flags.join(' ')} --output "${tmpOut}"`)
       batLines.push('echo.')
     })
-    // Merge with query list as args (used in the results header)
     const queryArgs = queries.map(q => `"${q}"`).join(' ')
     batLines.push(`python "${merger}" ${queryArgs}`)
   }
 
-  batLines.push('echo.', 'echo Done! Results saved to jobs/linkedin_results.md.', '')
+  batLines.push(
+    'echo.',
+    'echo Done! Results saved to jobs/linkedin_results.md.',
+    `del "${SENTINEL}" 2>nul`,
+    '',
+  )
 
   const batPath = path.join(rootDir, '.scraper_launch.bat')
   fs.writeFileSync(batPath, batLines.join('\r\n'))
 
+  // /c closes the window when done (was /k which kept it open forever)
   const proc = spawn(
     'cmd.exe',
-    ['/c', 'start', 'cmd', '/k', batPath],
+    ['/c', 'start', 'cmd', '/c', batPath],
     { detached: true, stdio: 'ignore', shell: false }
   )
   proc.unref()
