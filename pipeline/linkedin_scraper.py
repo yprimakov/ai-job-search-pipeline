@@ -136,17 +136,45 @@ SCRAPE_JOBS_JS: str = """
                 '.job-card-list__metadata-item'
             ]);
 
-            var salary = getText(card, [
-                '.job-card-container__salary-info',
-                '[class*="salary"]',
-                '.compensation'
-            ]);
+            // Salary: scan all metadata/insight items for dollar-sign content,
+            // then fall back to a regex search across the full card text.
+            var salary = '';
+            var metaEls = card.querySelectorAll(
+                '.job-card-container__metadata-item, ' +
+                '.job-card-container__insight, ' +
+                '.job-card-container__metadata-wrapper li, ' +
+                '.job-card-container__footer-item, ' +
+                '[class*="metadata"] li, [class*="insight"] li, ' +
+                '[class*="salary"], [class*="compensation"]'
+            );
+            for (var mi = 0; mi < metaEls.length; mi++) {
+                var mt = metaEls[mi].innerText.trim();
+                if (mt.indexOf('$') !== -1 || mt.toLowerCase().indexOf('/yr') !== -1 || mt.toLowerCase().indexOf('/hr') !== -1) {
+                    salary = mt;
+                    break;
+                }
+            }
+            if (!salary) {
+                var cardText = card.innerText || '';
+                var salaryMatch = cardText.match(/\$[\d,.]+[KkMm]?(?:\s*\/\s*(?:yr|year|hr|hour))?(?:\s*[-\u2013\u2014]\s*\$[\d,.]+[KkMm]?(?:\s*\/\s*(?:yr|year|hr|hour))?)?/);
+                if (salaryMatch) salary = salaryMatch[0].trim();
+            }
 
+            // Easy Apply: check aria-labels, class names, and button/badge text
             var easyApply = !!(
                 card.querySelector('[aria-label*="Easy Apply"]') ||
-                card.querySelector('.job-card-container__apply-method') ||
-                card.innerText.includes('Easy Apply')
+                card.querySelector('[class*="easy-apply"]') ||
+                card.querySelector('.job-card-container__apply-method')
             );
+            if (!easyApply) {
+                var allEls = card.querySelectorAll('button, span, li, div');
+                for (var ei = 0; ei < allEls.length; ei++) {
+                    if (allEls[ei].childElementCount === 0 && allEls[ei].innerText.trim() === 'Easy Apply') {
+                        easyApply = true;
+                        break;
+                    }
+                }
+            }
 
             var url = getHref(card, [
                 '.job-card-list__title',
@@ -163,20 +191,25 @@ SCRAPE_JOBS_JS: str = """
                 if (m) jobId = m[1];
             }
 
-            // Posted date — prefer datetime attribute for precision
+            // Posted date: try time element first, then class-based, then regex on card text
             var posted = '';
-            var timeEl = card.querySelector('time[datetime]');
-            if (timeEl) {
-                // Use human-readable text if available, else the datetime attr
-                posted = timeEl.innerText.trim() || timeEl.getAttribute('datetime') || '';
+            var timeEls = card.querySelectorAll('time');
+            for (var ti = 0; ti < timeEls.length; ti++) {
+                var tt = timeEls[ti].innerText.trim() || timeEls[ti].getAttribute('datetime') || '';
+                if (tt) { posted = tt; break; }
             }
             if (!posted) {
                 posted = getText(card, [
                     '.job-card-container__listed-status',
                     '.job-search-card__listdate',
-                    'span[class*="listed-time"]',
-                    'span[class*="time-badge"]'
+                    'span[class*="listed"]',
+                    'span[class*="time-badge"]',
+                    'span[class*="posted"]'
                 ]);
+            }
+            if (!posted) {
+                var postedMatch = (card.innerText || '').match(/\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+ago/i);
+                if (postedMatch) posted = postedMatch[0];
             }
 
             // Only keep cards where we got at minimum a title
