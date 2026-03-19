@@ -1,4 +1,7 @@
 // Custom Node.js server: Next.js + WebSocket + chokidar
+// Load .env from repo root (one level up from command-center/)
+require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') })
+
 const { createServer } = require('http')
 const { parse } = require('url')
 const next = require('next')
